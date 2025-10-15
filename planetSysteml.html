@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <!-- RECOMENDADO JUGARLO EN PANTALLA COMPLETA Y A DISFRUTAR !!-->
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Toy Story 2 The Game</title>
+    <link rel="icon" type="image/x-icon" href="https://cdn.glitch.global/6d80f8a6-9964-4cf7-8be7-8289db6965d5/toyStory.png?v=1730021175623"/>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css"/>
+    <link rel="stylesheet" href="/style_planet.css" />
+  </head>
+  <body>
+    <script type="importmap">
+      { "imports": {
+          "three": "https://unpkg.com/three@0.152.1/build/three.module.js",
+          "three/": "https://cdn.skypack.dev/three@0.152.1/" }
+      }
+    </script>
+    <link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet"/>
+    
+    <div id="loadingScreen">
+    <div class="spinner"></div> <!-- Indicador de carga -->
+    Cargando Texturas y Planetas...
+  </div>
+    <script type="module" src="planetSystem.js"></script>
+    <script type="module" src="loadSongs.js"></script>
+    
+    <div id="planetarySystem">
+      <div style="position: absolute; top: 20px; left: 50%; transform: translate(-50%, -50%); text-align: center;">
+        <h1 style=" color: limegreen; font-family: 'VT323', monospace; font-size: 48px; letter-spacing: 2px; text-shadow: 0 0 5px limegreen;"> CUADRANTE GAMA SECTOR 4 </h1>
+      </div>  
+      <p id="modeText" style=" left: 20px; color: limegreen; font-family: 'VT323'; position: absolute; text-align: center; font-family: 'VT323', monospace; font-size: 24px; font-size: 20px; margin-top: 110px;"> Modo: Vista Libre </p>
+      <div style="position:absolute;left:0;top;0; color: limegreen; font-family: 'VT323', monospace; font-size: 24px; margin:15px;">
+        <div class="player">
+          <div class="song-title" id="song-title">Hay un amigo en mi...</div>
+          <audio id="audio-player" src="https://cdn.glitch.global/6d80f8a6-9964-4cf7-8be7-8289db6965d5/videoplayback.m4a?v=1730150241532"></audio>
+          <div class="controls">
+            <i class="fas fa-backward" onclick="previousSong()"></i>
+            <i class="fas fa-play" id="play-pause" onclick="togglePlayPause()"></i>
+            <i class="fas fa-forward" onclick="nextSong()"></i>
+          </div>
+        </div>
+      </div>
+      <div style="position: absolute; top: 140px; left: 10px; background: rgba(0, 0, 0, 0.7); padding: 15px; border-radius: 10px; box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);">
+      <button id="flyModeButton" style=" background-color: limegreen; color: black; border: none; border-radius: 5px; padding: 10px; font-size: 18px; cursor: pointer; font-family: 'VT323', monospace; display: block; justify-self: center; margin: 10px; " > Modo Buzz </button>
+      <h2 style=" color: limegreen; font-family: 'VT323', monospace; text-align: center; margin: 0 0 10px 0; font-size: 24px; " > Vistas </h2>
+        
+        <div style="display: flex; justify-content: space-around">
+          <button id="camera1" class="view-button" style=" background-color: limegreen; color: black; border: none; border-radius: 5px; padding: 10px 20px; font-size: 18px; cursor: pointer; font-family: 'VT323', monospace; ">1</button>
+          <button id="camera2" class="view-button" style=" background-color: limegreen; color: black; border: none; border-radius: 5px; padding: 10px 20px; font-size: 18px; cursor: pointer; font-family: 'VT323', monospace; " > 2 </button>
+          <button id="camera3" class="view-button" style=" background-color: limegreen; color: black; border: none; border-radius: 5px; padding: 10px 20px; font-size: 18px; cursor: pointer; font-family: 'VT323', monospace; " > 3 </button>
+          <button id="freeView" class="view-button" style=" background-color: limegreen; color: black; border: none; border-radius: 5px; padding: 10px 20px; font-size: 18px; cursor: pointer; font-family: 'VT323', monospace; " > Libre </button>
+        </div>
+        <h2 style=" color: limegreen; font-family: 'VT323', monospace; text-align: center; margin: 10px 0 10px 0; font-size: 24px; " > Velocidad </h2>
+    
+        <div style="display: flex; justify-content: space-around">
+          <button id="btnSlow" class="speed-button" style=" background-color: limegreen; color: black; border: none; border-radius: 5px; padding: 10px 20px; font-size: 18px; cursor: pointer; font-family: 'VT323', monospace; " > x1 </button>
+          <button id="btnNormal" class="speed-button" style=" background-color: limegreen; color: black; border: none; border-radius: 5px; padding: 10px 20px; font-size: 18px; cursor: pointer; font-family: 'VT323', monospace; " > x2 </button>
+          <button id="btnFast" class="speed-button" style=" background-color: limegreen; color: black; border: none; border-radius: 5px; padding: 10px 20px; font-size: 18px; cursor: pointer; font-family: 'VT323', monospace; " > x3 </button>          
+          <button id="btnStop" class="speed-button" style=" background-color: limegreen; color: black; border: none; border-radius: 5px; padding: 10px 20px; font-size: 18px; cursor: pointer; font-family: 'VT323', monospace; " > Parar </button>
+        </div>
+      </div>
+      
+      <div id="minimap-container" style=" position: absolute; height: 30%; width: 20%; top: -10px; right: 0px; background: rgba(0, 0, 0, 0.8); padding: 0px; margin: 20px; border-radius: 8px; box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5); " >         
+        <h3 style=" color: white; text-align: center; font-family: Arial, sans-serif; font-size: 10px; margin-bottom: 5px; padding-top: 5px; " > Minimapa </h3>
+        <div style=" position: absolute; display: flex; place-content: center; right: 0; padding-bottom: 100%; height: 0; width: 100%; " >
+          <canvas id="minimap" style=" border-radius: 50%; border: 2px solid #ffffff; position: absolute; top: 0; width: 50%; height: 50%; " ></canvas>
+        </div>
+      </div>
+
+      <div id="miniViewportContainer"></div>
+      <div id="miniViewportTitle">Pizza Planet</div>
+
+      <div id="planet-form" style="position: absolute; right: 0; margin: 20px">
+        <label for="deletePlanetSelect">Eliminar un planeta:</label>
+        <select id="deletePlanetSelect">
+          <option value="">Selecciona un planeta</option>
+          <option value="mercurio">Mercurio</option>
+          <option value="venus">Venus</option>
+          <option value="tierra">Tierra</option>
+          <option value="marte">Marte</option>
+          <option value="júpiter">Júpiter</option>
+          <option value="saturno">Saturno</option>
+          <option value="urano">Urano</option>
+          <option value="neptuno">Neptuno</option>
+        </select>
+        <button style="background-color:limegreen;font-size: 15px; font-family: monospace; color:black;" id="deletePlanet">Eliminar Planeta</button>
+
+        <hr style="margin: 15px 0" />
+
+        <label for="planetName">Nombre del planeta:</label>
+        <input type="text" id="planetName" placeholder="Ej: Marte" />
+
+        <label for="planetOrbit">Selecciona la órbita:</label>
+        <select id="planetOrbit">
+          <option value="8">Órbita 1</option>
+          <option value="16">Órbita 2</option>
+          <option value="24">Órbita 3</option>
+          <option value="32">Órbita 4</option>
+        </select>
+        
+        <label for="planetColor">Selecciona el color:</label>
+        <input type="color" id="planetColor" value="#ff0000" />
+        <button style="background-color:limegreen;font-size: 15px; font-family: monospace; color:black;" id="createPlanet">Crear Planeta</button>
+      </div>
+    
+      <canvas id="smallCameraCanvas" style=" position: absolute; bottom: 10px; margin: 0; right: 0; left: 0; width: 13%; height: 27%; place-self: center; " ></canvas>
+      <audio id="infinite-audio" src="https://cdn.glitch.global/6d80f8a6-9964-4cf7-8be7-8289db6965d5/infinito.mp3?v=1730152356583"></audio>
+      <button onclick="document.getElementById('infinite-audio').play()" style=" background-color: limegreen; color: black; border: none; border-radius: 5px; position: absolute; left: 50%; bottom: 20px; transform: translateX(-50%); padding: 10px 20px; font-size: 16px; cursor: pointer; font-family: 'VT323', monospace; z-index: 10; " > Hasta el Infinito y... </button>
+
+      <div class="cards-container">
+        <div class="card-client buzz hidden" id="mercurio-card">
+          <button class="close-btn" onclick="closeCard('mercurio-card')">
+            X
+          </button>
+          <div id="buzzImg" class="user-picture">
+            <img src="https://cdn.glitch.global/6d80f8a6-9964-4cf7-8be7-8289db6965d5/Buzz.png?v=1729941234128" alt="Imagen de Buzz Lightyear" />
+          </div>
+          <p class="card-title">Buzz Lightyear</p>
+          <div class="planet-info"> <p>Tamaño: 4,880 km</p> <p>Temperatura: 430 °C / -180 °C</p> <p>Composición: Rocas y Metales</p></div>
+          <p class="name-client"> ¡Mercurio! El planeta más cercano al Sol. ¡No tengo tiempo para perder, ¡hay que explorar más allá de la galaxia! </p>
+        </div>
+        <div class="card-client jessie hidden" id="venus-card">
+          <button class="close-btn" onclick="closeCard('venus-card')">X</button>
+          <div id="jessieImg" class="user-picture">
+            <img src="https://cdn.glitch.global/6d80f8a6-9964-4cf7-8be7-8289db6965d5/Jessie.png?v=1729941218533" alt="Imagen de Jessie" />
+          </div>
+          <p class="card-title">Jessie</p>
+          <div class="planet-info"> <p>Tamaño: 12,104 km</p> <p>Temperatura: 462 °C</p> <p>Composición: Gases</p> </div>
+          <p class="name-client"> ¡Hola, vaquero! Venus es conocido como el planeta hermano de la Tierra, ¡no es un lugar para una vaquera como yo! </p>
+        </div>
+
+        <div class="card-client woody hidden" id="tierra-card">
+          <button class="close-btn" onclick="closeCard('tierra-card')"> X </button>
+          <div id="woodyImg" class="user-picture">
+            <img src="https://cdn.glitch.global/6d80f8a6-9964-4cf7-8be7-8289db6965d5/Woody.png?v=1729941186632" alt="Imagen de Woody" />
+          </div>
+          <p class="card-title">Woody</p>
+          <div class="planet-info"> <p>Tamaño: 12,742 km</p> <p>Temperatura: 15 °C</p> <p>Composición: Rocas y Agua</p> </div>
+          <p class="name-client"> ¡Yeehaw! La Tierra es nuestro hogar, ¡donde todos los juguetes viven y juegan! </p>
+        </div>
+
+        <div class="card-client rex hidden" id="marte-card">
+          <button class="close-btn" onclick="closeCard('marte-card')">X</button>
+          <div id="rexImg" class="user-picture">
+            <img src="https://cdn.glitch.global/6d80f8a6-9964-4cf7-8be7-8289db6965d5/Rex.png?v=1729941192160" alt="Imagen de Rex" />
+          </div>
+          <p class="card-title">Rex</p>
+          <div class="planet-info">
+            <p>Tamaño: 6,779 km</p>
+            <p>Temperatura: -63 °C</p>
+            <p>Composición: Rocas y Metales</p>
+          </div>
+          <p class="name-client"> Oh, Marte, el planeta rojo. ¡Es un lugar emocionante y un poco aterrador! </p>
+        </div>
+        <div class="card-client potato hidden" id="júpiter-card">
+          <button class="close-btn" onclick="closeCard('júpiter-card')"> X </button>
+          <div id="potatoImg" class="user-picture">
+            <img src="https://cdn.glitch.global/6d80f8a6-9964-4cf7-8be7-8289db6965d5/SrPotato.png?v=1729941184780" alt="Imagen del Sr. Potato" />
+          </div>
+          <p class="card-title">Sr. Potato</p>
+          <div class="planet-info"> <p style="margin-right: 10">Tamaño: 139,822 km</p> <p style="margin-right: 10">Temperatura: -108 °C</p> <p style="margin-right: 10">Composición: Gases</p> </div>
+          <p class="name-client"> Júpiter, el gigante gaseoso. ¡Quizás sea un buen lugar para esconderse de los problemas! </p>
+        </div>
+        <div class="card-client alien hidden" id="saturno-card">
+          <button class="close-btn" onclick="closeCard('saturno-card')">X</button>
+          <div id="marcianoImg" class="user-picture">
+            <img src="https://cdn.glitch.global/6d80f8a6-9964-4cf7-8be7-8289db6965d5/Marciano.png?v=1729941194272" alt="Imagen del Marciano"/>
+          </div>
+          <p class="card-title">Marciano</p>
+          <div class="planet-info">
+            <p>Tamaño: 116,464 km</p> <p>Temperatura: -178 °C</p> <p>Composición: Gases y Rocas</p>
+          </div>
+          <p class="name-client"> ¡Saturno, el planeta de los anillos! ¡Me gustaría dar un paseo!</p>
+        </div>
+
+        <div class="card-client hamm hidden" id="urano-card">
+          <button class="close-btn" onclick="closeCard('urano-card')">X</button>
+          <div id="hammImg" class="user-picture">
+            <img src="https://cdn.glitch.global/6d80f8a6-9964-4cf7-8be7-8289db6965d5/Hamm.png?v=1729941199470" alt="Imagen de Hamm"/>
+          </div>
+          <p class="card-title">Hamm</p>
+          <div class="planet-info">
+            <p>Tamaño: 50,724 km</p> <p>Temperatura: -224 °C</p> <p>Composición: Gases</p>
+          </div>
+          <p class="name-client"> Urano, el planeta inclinado. ¡Un lugar extraño para un cerdito como yo! </p>
+        </div>
+
+        <div class="card-client dog hidden" id="neptuno-card">
+          <button class="close-btn" onclick="closeCard('neptuno-card')">
+            X
+          </button>
+          <div id="slinkyImg" class="user-picture">
+            <img src="https://cdn.glitch.global/6d80f8a6-9964-4cf7-8be7-8289db6965d5/perro.png?v=1729941189836" alt="Imagen de Slinky"/>
+          </div>
+          <p class="card-title">Slinky</p>
+          <div class="planet-info">
+            <p>Tamaño: 49,244 km</p> <p>Temperatura: -214 °C</p> <p>Composición: Gases</p>
+          </div>
+          <p class="name-client"> Neptuno es el planeta más lejano del Sol. ¡Me encantaría correr con esos vientos!</p>
+        </div>
+      </div>
+
+      <!-- Contenedor para los Íconos de los Planetas -->
+      <div id="planet-icons">
+        <div class="planet-container">
+          <h3 class="planet-name">Mercurio</h3>
+          <img src="https://cdn.glitch.global/80286c7e-6c82-477f-9a83-60bda60780a6/2k_mercury.jpg?v=1728913342257" alt="Mercurio" class="planet-icon" data-name="Mercurio" />
+        </div>
+        <div class="planet-container">
+          <h3 class="planet-name">Venus</h3>
+          <img src="https://cdn.glitch.global/80286c7e-6c82-477f-9a83-60bda60780a6/2k_venus_atmosphere.jpg?v=1728913339548" alt="Venus" class="planet-icon" data-name="Venus"/>
+        </div>
+        <div class="planet-container">
+          <h3 class="planet-name">Tierra</h3>
+          <img src="https://cdn.glitch.global/80286c7e-6c82-477f-9a83-60bda60780a6/earth.jpg?v=1728674060432" alt="Tierra" class="planet-icon" data-name="Tierra"/>
+        </div>
+        <div class="planet-container">
+          <h3 class="planet-name">Marte</h3>
+          <img src="https://cdn.glitch.global/80286c7e-6c82-477f-9a83-60bda60780a6/mars.jpg?v=1728676127669" alt="Marte" class="planet-icon" data-name="Marte"/>
+        </div>
+        <div class="planet-container">
+          <h3 class="planet-name">Júpiter</h3>
+          <img src="https://cdn.glitch.global/80286c7e-6c82-477f-9a83-60bda60780a6/2k_jupiter.jpg?v=1728911901422" alt="Júpiter" class="planet-icon" data-name="Júpiter"/>
+        </div>
+        <div class="planet-container">
+          <h3 class="planet-name">Saturno</h3>
+          <img src="https://cdn.glitch.global/80286c7e-6c82-477f-9a83-60bda60780a6/2k_saturn.jpg?v=1728911914498" alt="Saturno" class="planet-icon" data-name="Saturno"/>
+        </div>
+        <div class="planet-container">
+          <h3 class="planet-name">Urano</h3>
+          <img src="https://cdn.glitch.global/80286c7e-6c82-477f-9a83-60bda60780a6/urano.jpg?v=1728911828664" alt="Urano" class="planet-icon" data-name="Urano"/>
+        </div>
+        <div class="planet-container">
+          <h3 class="planet-name">Neptuno</h3>
+          <img src="https://cdn.glitch.global/80286c7e-6c82-477f-9a83-60bda60780a6/2k_neptune.jpg?v=1728911865255" alt="Neptuno" class="planet-icon" data-name="Neptuno"/>
+        </div>
+      </div>
+    </div>
+  </body>
+  <script> function closeCard(cardId) { const card = document.getElementById(cardId); card.classList.add("hidden");}</script>
+</html>
