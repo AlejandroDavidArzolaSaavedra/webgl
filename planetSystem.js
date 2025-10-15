@@ -10,8 +10,8 @@ import { MTLLoader } from "three/examples/jsm/loaders/MTLLoader";
 import { focusOnObject } from "./focusOnObject.js";
 // No se usa porque es poco intuitiva, descomentar para ver su funcionamiento
 // import { TransformControls } from 'https://unpkg.com/three@0.152.1/examples/jsm/controls/TransformControls.js';
-import { crearTierra } from "../earth.js";
-import { crearSol } from "../sun.js";
+import { crearTierra } from "./earth.js";
+import { crearSol } from "./sun.js";
 
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 0.1, 1000);
