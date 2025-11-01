@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="es">
+  <!-- SE RECOMIENDA ABRIRLO EN PANTALLA COMPLETA PARA UNA EXPERIENCIA DE USUARIO MEJOR -->
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="author" content="Alejandro David Arzola Saavedra" />
+    <meta name="date" content="2024-09-16" />
+    <title>Juego en WebGL</title>
+    <style>
+      #my_Canvas {
+        border: 5px groove green;
+        margin-right: 20px;
+      }
+
+      p {
+        font-size: 20px;
+        margin: 10px;
+      }
+
+      h1 {
+        font-size: 30px;
+      }
+
+      h1,
+      p {
+        color: white;
+      }
+
+      body {
+        background-color: #0d1117;
+      }
+
+      #startButton,
+      #pauseButton {
+        margin-top: 20px;
+        font-size: 20px;
+        padding: 10px;
+        background-color: #4caf50;
+        color: white;
+        border: none;
+        cursor: pointer;
+        border-radius: 5px;
+        font-weight: bold;
+      }
+      #pauseButton {
+        background-color: red;
+      }
+
+      #startButton:disabled {
+        background-color: #888;
+        cursor: not-allowed;
+      }
+
+      .instructions {
+        color: white;
+        font-size: 18px;
+        margin-top: 20px;
+      }
+    </style>
+  </head>
+
+  <body>
+    <h1 align="center">Car Web GL</h1>
+    <div align="center">
+      <canvas width="300" height="350" id="my_Canvas"></canvas>
+      <img
+        width="200px"
+        src="img/keys.png"
+        alt="keys"
+      />
+    </div>
+
+    <div align="center">
+      <button id="startButton" onclick="startGame()">Iniciar Juego</button>
+      <button id="pauseButton" onclick="togglePause()">Pausar Juego</button>
+    </div>
+    <div align="center" class="instructions">
+      <p>Utiliza las flechas para mover el coche.</p>
+    </div>
+    <div align="center">
+
+    </div>
+    <script id="vertex-shader" type="x-shader/x-vertex">
+      #version 300 es
+      precision mediump float;
+
+      in vec2 aCoordinates;
+
+      void main(void) {
+          gl_Position = vec4(aCoordinates, 0, 1);
+          gl_PointSize = 10.0;
+      }
+    </script>
+    <script id="fragment-shader" type="x-shader/x-fragment">
+      #version 300 es
+      precision mediump float;
+
+      uniform vec4 uColor;
+
+      out vec4 fragColor;
+
+      void main(void) {
+          fragColor = uColor;
+      }
+    </script>
+
+    <script>
+      var carX = -0.05;
+      var carY = -0.9;
+      var carSpeed = 0.02;
+      var carYSpeed = 0.02;
+
+      var cloudX1 = -0.5;
+      var cloudX2 = 0.2;
+      var cloudSpeed = 0.01;
+
+      var treeYPositions = [-0.2, -0.6, -0.3, -0.6];
+      var treeSpeed = 0.01; 
+
+      var lineY = 0;
+      var lineSpeed = 0.03; 
+
+      var paused = false; 
+
+      var movingLeft = false;
+      var movingRight = false;
+      var movingForward = false;
+      var movingBackward = false;
+      var gameStarted = false;
+
+      function init() {
+        canvas = document.getElementById("my_Canvas");
+        gl = canvas.getContext("webgl2");
+
+        var vertShader = gl.createShader(gl.VERTEX_SHADER);
+        var script = document.getElementById("vertex-shader");
+        var shaderString = script.text.trim();
+        gl.shaderSource(vertShader, shaderString);
+        gl.compileShader(vertShader);
+
+        var fragShader = gl.createShader(gl.FRAGMENT_SHADER);
+        script = document.getElementById("fragment-shader");
+        shaderString = script.text.trim();
+        gl.shaderSource(fragShader, shaderString);
+        gl.compileShader(fragShader);
+
+        var shaderProgram = gl.createProgram();
+        gl.attachShader(shaderProgram, vertShader);
+        gl.attachShader(shaderProgram, fragShader);
+        gl.linkProgram(shaderProgram);
+        gl.useProgram(shaderProgram);
+
+        vertex_buffer = gl.createBuffer();
+        gl.bindBuffer(gl.ARRAY_BUFFER, vertex_buffer);
+
+        var coordLocation = gl.getAttribLocation(shaderProgram, "aCoordinates");
+        gl.vertexAttribPointer(coordLocation, 2, gl.FLOAT, false, 0, 0);
+        gl.enableVertexAttribArray(coordLocation);
+        gl.bindBuffer(gl.ARRAY_BUFFER, null);
+
+        colorLocation = gl.getUniformLocation(shaderProgram, "uColor");
+
+        window.addEventListener("keydown", keyDownHandler);
+        window.addEventListener("keyup", keyUpHandler);
+
+        render();
+      }
+
+      function drawCloud(x, y, width, height, color) {
+        drawRectangle(x - 0.05, y, width, height, color);
+        drawRectangle(x - 0.1, y + 0.03, width * 0.8, height, color);
+        drawRectangle(x + 0.1, y + 0.03, width * 0.8, height, color);
+        drawRectangle(x, y + 0.05, width * 0.9, height, color);
+      }
+
+      function drawTree(x, y) {
+        drawRectangle(x - 0.025, y, 0.05, 0.2, [0.5, 0.25, 0, 1]);
+        drawTreeLeaves(x, y + 0.2);
+        drawTreeLeaves(x, y + 0.3);
+      }
+
+      function drawTreeLeaves(x, y) {
+        const baseVertices = [
+          x,
+          y, 
+          x - 0.1,
+          y - 0.1, 
+          x + 0.1,
+          y - 0.1, 
+        ];
+        drawTriangleFan(baseVertices, [0, 1, 0, 1]);
+
+        const middleVertices = [
+          x,
+          y + 0.05,
+          x - 0.08,
+          y - 0.1,
+          x + 0.08,
+          y - 0.1,
+        ];
+        drawTriangleFan(middleVertices, [0, 0.8, 0, 1]); 
+
+        
+        const topVertices = [
+          x,
+          y + 0.1,
+          x - 0.06,
+          y - 0.1,
+          x + 0.06,
+          y - 0.1, 
+        ];
+        drawTriangleFan(topVertices, [0, 0.6, 0, 1]);
+      }
+
+      function drawTriangleFan(vertices, color) {
+        gl.bufferData(
+          gl.ARRAY_BUFFER,
+          new Float32Array(vertices),
+          gl.STATIC_DRAW
+        );
+        gl.uniform4fv(colorLocation, color);
+        gl.drawArrays(gl.TRIANGLE_FAN, 0, vertices.length / 2);
+      }
+
+      function render() {
+        if (!gameStarted || paused) return;
+
+        gl.clearColor(0.13, 0.55, 0.13, 1.0);
+        gl.clear(gl.COLOR_BUFFER_BIT);
+        gl.viewport(0, 0, canvas.width, canvas.height);
+        gl.bindBuffer(gl.ARRAY_BUFFER, vertex_buffer);
+
+        drawRectangle(-1, 0, 2, 1, [0.53, 0.81, 0.92, 1]);
+        drawRectangle(0.7, 0.7, 0.2, 0.2, [1, 1, 0, 1]);
+  
+        drawCloud(cloudX1, 0.6, 0.2, 0.1, [1, 1, 1, 1]);
+        drawCloud(cloudX2, 0.5, 0.25, 0.12, [1, 1, 1, 1]);
+
+        cloudX1 += cloudSpeed;
+        cloudX2 += cloudSpeed;
+
+        if (cloudX1 > 1.2) {
+          cloudX1 = -1.2;
+        }
+        if (cloudX2 > 1.2) {
+          cloudX2 = -1.2;
+        }
+        drawTrapezoid(-0.02, -1, 0.3, 0.5, [0.55, 0.27, 0.07, 1]);
+
+        for (var i = 0; i < treeYPositions.length; i++) {
+          drawTree(-0.6 + (i % 2) * 1.2, treeYPositions[i]);
+          treeYPositions[i] -= treeSpeed;
+
+          if (treeYPositions[i] < -1.2) {
+            treeYPositions[i] = Math.random() * 0.5 - 0.4;
+          }
+        }
+        drawRoadLines();
+
+        lineY -= lineSpeed;
+        if (lineY <= -1) {
+          lineY = 0;
+        }
+
+        if (movingLeft && carX > -0.1) {
+          carX -= carSpeed;
+        } else if (movingRight && carX < 0.1 - 0.1) {
+          carX += carSpeed;
+        }
+
+        if (movingForward && carY < -0.1) {
+          carY += carYSpeed;
+        } else if (movingBackward && carY > -1) {
+          carY -= carYSpeed;
+        }
+
+        drawCar(carX, carY); 
+
+        gl.bindBuffer(gl.ARRAY_BUFFER, null);
+        window.requestAnimationFrame(render);
+      }
+
+      function togglePause() {
+        paused = !paused;
+        if (paused) {
+          document.getElementById("pauseButton").textContent = "Reanudar Juego";
+        } else {
+          document.getElementById("pauseButton").textContent = "Pausar Juego";
+        }
+        render();
+      }
+
+      function drawRectangle(x, y, width, height, color) {
+        var x1 = x;
+        var x2 = x + width;
+        var y1 = y;
+        var y2 = y + height;
+        gl.bufferData(
+          gl.ARRAY_BUFFER,
+          new Float32Array([x1, y1, x2, y1, x1, y2, x1, y2, x2, y1, x2, y2]),
+          gl.STATIC_DRAW
+        );
+        gl.uniform4fv(colorLocation, color);
+        gl.drawArrays(gl.TRIANGLES, 0, 6);
+      }
+
+      function drawTrapezoid(x, y, widthBase, widthTop, color) {
+        var x1 = x - widthBase / 2;
+        var x2 = x + widthBase / 2;
+        var x3 = x - widthTop / 2;
+        var x4 = x + widthTop / 2;
+        var y1 = y;
+        var y2 = y + 1;
+
+        gl.bufferData(
+          gl.ARRAY_BUFFER,
+          new Float32Array([x1, y1, x2, y1, x3, y2, x3, y2, x2, y1, x4, y2]),
+          gl.STATIC_DRAW
+        );
+
+        gl.uniform4fv(colorLocation, color);
+        gl.drawArrays(gl.TRIANGLES, 0, 6);
+      }
+
+      function drawRoadLines() {
+        for (var i = -1; i < 1; i += 0.4) {
+          if (i + lineY < 0.5) {
+            drawRectangle(-0.01, i + lineY - 0.6, 0.02, 0.1, [1, 1, 1, 1]);
+          }
+        }
+      }
+
+      function drawCar(x, y) {
+        drawRectangle(x, y, 0.1, 0.05, [1, 0, 0, 1]);
+        drawRectangle(x + 0.01, y + 0.05, 0.08, 0.03, [0.7, 0.7, 0.7, 1]);
+        drawRectangle(x + 0.01, y - 0.02, 0.02, 0.02, [0, 0, 0, 1]);
+        drawRectangle(x + 0.07, y - 0.02, 0.02, 0.02, [0, 0, 0, 1]);
+      }
+
+      function keyDownHandler(e) {
+        if (e.key === "ArrowLeft") {
+          movingLeft = true;
+        } else if (e.key === "ArrowRight") {
+          movingRight = true;
+        } else if (e.key === "ArrowUp") {
+          movingForward = true;
+        } else if (e.key === "ArrowDown") {
+          movingBackward = true;
+        }
+      }
+
+      function keyUpHandler(e) {
+        if (e.key === "ArrowLeft") {
+          movingLeft = false;
+        } else if (e.key === "ArrowRight") {
+          movingRight = false;
+        } else if (e.key === "ArrowUp") {
+          movingForward = false;
+        } else if (e.key === "ArrowDown") {
+          movingBackward = false;
+        }
+      }
+
+      function startGame() {
+        gameStarted = true;
+        document.getElementById("startButton").disabled = true;
+        init();
+      }
+      window.onload = init;
+    </script>
+  </body>
+</html>
