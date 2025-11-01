@@ -6,16 +6,16 @@ Cada juego está diseñado para ejecutarse directamente en el navegador, sin nec
 
 ## 🚗 Juego 1: **Car WebGL**
 
-**Car WebGL** es un juego simple en el que controlas un coche desde una vista frontal en una carretera. El entorno incluye árboles, nubes y una carretera animada que simula movimiento. El objetivo es **mover el coche libremente** usando las teclas de flecha, evitando salir del camino mientras el escenario se desplaza.
+**Car WebGL** es un juego simple en el que controlas un coche desde una vista frontal en una carretera. El entorno incluye árboles, nubes y una carretera animada que simula movimiento. El objetivo es **mover el coche libremente** usando las teclas de flecha, evitando salir del camino mientras el escenario se desplaza. Pruebalo -> [Link del juego](https://alejandrodavidarzolasaavedra.github.io/webgl/car_game/)
 
 <div align="center">
   <img src="img/car_game.gif">
 </div>
 
+## 🏓 Juego 2: Ping Pong WebGL
 
-🏓 Juego 2: Ping Pong WebGL
+Ping Pong WebGL es un juego de tenis de mesa interactivo en 2D creado con WebGL 2.0. El juego también permite personalizar el nombre y color de cada jugador antes de comenzar.  Pruebalo -> [Link del juego](https://alejandrodavidarzolasaavedra.github.io/webgl/ping_pong/)
 
-Ping Pong WebGL es un juego de tenis de mesa interactivo en 2D creado con WebGL 2.0. El juego también permite personalizar el nombre y color de cada jugador antes de comenzar.
 Permite jugar dos modos de juego:
 
 - Modo Normal → Dos jugadores compiten para alcanzar 10 puntos.
