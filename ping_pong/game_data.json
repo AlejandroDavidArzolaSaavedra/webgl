@@ -1,0 +1,48 @@
+{
+  "player2": {
+    "x": 0.7,
+    "y": -0.3,
+    "width": 0.1,
+    "height": 0.4,
+    "color": [1, 0, 0, 1],
+    "movement": 0
+  },
+  "player1": {
+    "x": -0.8,
+    "y": -0.3,
+    "width": 0.1,
+    "height": 0.4,
+    "color": [1, 1, 1, 1],
+    "movement": 0
+  },
+  "player1Breakout": {
+    "x": -0.2,
+    "y": -0.9,
+    "width": 0.4,
+    "height": 0.1,
+    "color": [1, 1, 1, 1],
+    "movement": 0
+  },
+  "ballsBreakOut": [
+    {
+      "x": -0.7,
+      "y": -0.3,
+      "width": 0.1,
+      "height": 0.02,
+      "color": [0, 0, 1, 1],
+      "speedX": 1,
+      "speedY": -1
+    }
+  ],
+  "balls": [
+    {
+      "x": -0.5,
+      "y": -0.3,
+      "width": 0.1,
+      "height": 0.02,
+      "color": [0, 0, 1, 1],
+      "speedX": 1,
+      "speedY": -1
+    }
+  ]
+}

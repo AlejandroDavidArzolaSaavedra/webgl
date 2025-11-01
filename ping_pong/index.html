@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <!-- Recomendado jugarlo en pantalla completa-->
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width" />
+    <meta name="author" content="Alejandro David Arzola Saavedra" />
+    <link rel="stylesheet" href="style.css" />
+    <title>Ping Pong en WebGL</title>
+  </head>
+  <body>
+    <form id="form-container" class="form-container" onsubmit="startGame(); return false;">
+      <label for="player1-name">Nombre Jugador 1:</label>
+      <input type="text" id="player1-name" placeholder="Luis.." required />
+
+      <label for="player1-color">Color Jugador 1:</label>
+      <input type="color" id="player1-color" value="#FFFFFF" />
+
+      <label for="player2-name">Nombre Jugador 2:</label>
+      <input type="text" id="player2-name" placeholder="Elisa..." required />
+
+      <label for="player2-color">Color Jugador 2:</label>
+      <input type="color" id="player2-color" value="#FF0000" />
+      <button type="submit">Iniciar Juego</button>
+    </form>
+
+    <div id="game-container" style="display: none">
+      <div style="text-align: center">
+        <h1 style="text-align: center; margin: 0px">Ping Pong Webgl</h1>
+        <div class="div-button">
+          <button style="font-size: 1.1em; margin: 0" id="breakout-mode" onclick="toggleBreakout()"> Modo Breakout</button>
+        </div>
+        <div id="marcador">Marcador: <span id="normal-score-value">0-0</span></div>
+        <div id="breakout-score" style="display: none">Puntuación: <span id="breakout-score-value">0</span></div>
+      </div>
+      <div class="player-names">
+        <div id="player-names-container">
+          <div style="display: inline-block; margin-right: 20px" id="player1-name-display">Jugador 1: -</div>
+          <div style="display: inline-block" id="player2-name-display">Jugador 2: -</div>
+        </div>
+      </div>
+      <div align="center">
+        <canvas style="width: 350px; align: center; height: 350px" id="my_Canvas"></canvas>
+      </div>
+      <div align="center">
+        <div id="win-message" style="display: none; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 2em; text-align: center; color: white; background-color: rgba(0, 0, 0, 0.7); padding: 20px;"> Player 1 Wins!</div>
+        <p style="font-size: 1.2em; font-weight: bold; margin: 10px">
+          Teclas de control:
+        </p>
+        <div style="display: flex; flex-wrap: wrap; justify-content: center; gap: 20px;">
+          <div style="background-color: rgba(0, 0, 0, 0.5); border-radius: 8px; padding: 10px; max-width: 200px;" id="player1-instructions">
+            <p style="font-size: 1.1em; margin: 5px 0">Jugador 1</p>
+            <p style="font-size: 1.1em; margin: 5px 0">🔼: Sube</p>
+            <p style="font-size: 1.1em; margin: 5px 0">🔽: Baja</p>
+          </div>
+          <div style="background-color: rgba(0, 0, 0, 0.5); border-radius: 8px; padding: 10px; max-width: 200px; " id="player2-instructions">
+            <p style="font-size: 1.1em; margin: 5px 0">Jugador 2</p>
+            <p style="font-size: 1.1em; margin: 5px 0">⌨️ W: Sube</p>
+            <p style="font-size: 1.1em; margin: 5px 0">⌨️ S: Baja</p>
+          </div>
+          <div style="background-color: rgba(0, 0, 0, 0.5); border-radius: 8px; padding: 10px; max-width: 200px; display: none;" id="breakout-instructions">
+            <p style="font-size: 1.1em; margin: 5px 0">Jugador 1</p>
+            <p style="font-size: 1.1em; margin: 5px 0">⌨️ A : Izquierda</p>
+            <p style="font-size: 1.1em; margin: 5px 0">⌨️ D: Derecha</p>
+          </div>
+          <div style="background-color: rgba(0, 0, 0, 0.5); border-radius: 8px; padding: 10px; max-width: 200px;">
+            <p style="font-size: 1.1em; margin: 5px 0">Modo de juego</p>
+            <p style="font-size: 1.1em; margin: 5px 0">➡️: Acelera las bolas</p>
+            <p style="font-size: 1.1em; margin: 5px 0">⬅️: Frenar las bolas</p>
+          </div>
+          <div style=" background-color: rgba(0, 0, 0, 0.5); border-radius: 8px; padding: 10px; max-width: 200px;">
+            <p style="font-size: 1.1em; margin: 5px 0">Nº Bolas</p>
+            <p style="font-size: 1.1em; margin: 5px 0">➕: Más</p>
+            <p style="font-size: 1.1em; margin: 5px 0">➖: Menos</p>
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- vertex Shader -->
+    <script id="vertex-shader" type="x-shader/x-vertex">
+      #version 300 es
+      precision mediump float;
+      in vec2 aCoordinates;
+      void main(void) {
+        gl_Position = vec4(aCoordinates, 0, 1);
+      }
+    </script>
+    <!-- fragment Shader -->
+    <script id="fragment-shader" type="x-shader/x-fragment">
+        #version 300 es
+        precision mediump float;
+        out vec4 fragColor;
+        uniform vec4 uColor;
+        void main(void) {
+          fragColor = uColor;
+      }
+    </script>
+    <script>
+      var gl;
+      var canvas;
+      var vertex_buffer;
+      var colorLocation;
+      var marcador = [0, 0];
+      var ballSpeed = 0.01;
+      var ballSpeedIncrement = 0.005;
+      var ballSpeedDecrement = 0.005;
+
+      var isBreakoutMode = false;
+      var blocks = [];
+      var blockRows = 5;
+      var blockCols = 10;
+      var blockWidth = 0.2;
+      var blockHeight = 0.1;
+
+      var breakoutScore = 0;
+      var breakoutScoreElement = document.getElementById("breakout-score");
+
+      var player2;
+      var player1;
+      var player1Breakout;
+      var ballsBreakOut;
+      var balls;
+
+      const localStorageKey = "breakoutBlocks";
+
+      fetch("gameData.json")
+        .then((response) => {
+          if (!response.ok) {
+            throw new Error("Problemas con el json");
+          }
+          return response.json();
+        })
+        .then((gameData) => {
+          player2 = gameData.player2;
+          player1 = gameData.player1;
+          player1Breakout = gameData.player1Breakout;
+          ballsBreakOut = gameData.ballsBreakOut;
+          balls = gameData.balls;
+        })
+        .catch((error) => {
+          console.error("Error fetching the JSON:", error);
+        });
+
+      function startGame() {
+        document.getElementById("form-container").style.display = "none";
+        document.getElementById("game-container").style.display = "block";
+        var player1Name = document.getElementById("player1-name").value || "Jugador 1";
+        var player1Color = document.getElementById("player1-color").value;
+        var player2Name = document.getElementById("player2-name").value || "Jugador 2";
+        var player2Color = document.getElementById("player2-color").value;
+        player1.color = hexToRgbArray(player1Color);
+        player2.color = hexToRgbArray(player2Color);
+        document.getElementById("player1-name-display").innerText = "Jugador 1: " + player1Name;
+        document.getElementById("player2-name-display").innerText ="Jugador 2: " + player2Name;
+        initGL();
+      }
+
+      function hexToRgbArray(hex) {
+        var r = parseInt(hex.slice(1, 3), 16) / 255;
+        var g = parseInt(hex.slice(3, 5), 16) / 255;
+        var b = parseInt(hex.slice(5, 7), 16) / 255;
+        return [r, g, b, 1];
+      }
+
+      function initGL() {
+        canvas = document.getElementById("my_Canvas");
+        gl = canvas.getContext("webgl2");
+        gl = canvas.getContext("webgl2", { antialias: false });
+
+        var vertShader = gl.createShader(gl.VERTEX_SHADER);
+        var script = document.getElementById("vertex-shader");
+        gl.shaderSource(vertShader, script.text.trim());
+        gl.compileShader(vertShader);
+
+        var fragShader = gl.createShader(gl.FRAGMENT_SHADER);
+        script = document.getElementById("fragment-shader");
+        gl.shaderSource(fragShader, script.text.trim());
+        gl.compileShader(fragShader);
+
+        var shaderProgram = gl.createProgram();
+        gl.attachShader(shaderProgram, vertShader);
+        gl.attachShader(shaderProgram, fragShader);
+        gl.linkProgram(shaderProgram);
+        gl.useProgram(shaderProgram);
+
+        vertex_buffer = gl.createBuffer();
+        gl.bindBuffer(gl.ARRAY_BUFFER, vertex_buffer);
+        var coordLocation = gl.getAttribLocation(shaderProgram, "aCoordinates");
+        gl.vertexAttribPointer(coordLocation, 2, gl.FLOAT, false, 0, 0);
+        colorLocation = gl.getUniformLocation(shaderProgram, "uColor");
+        gl.enableVertexAttribArray(coordLocation);
+        gl.bindBuffer(gl.ARRAY_BUFFER, null);
+
+        render();
+      }
+
+      function checkLimitsCanvas(ball) {
+        if (ball.y - ball.width / 2 <= -1) ball.speedY *= -1; 
+        if (ball.y + ball.width / 2 >= 1) ball.speedY *= -1;
+
+        if (ball.x + ball.width >= 1) ball.speedX *= -1;
+        if (ball.x < -1) ball.speedX *= -1;
+      }
+
+      function render(time) {
+        gl.clearColor(0.1, 0.1, 0.1, 1.0);
+        gl.clear(gl.COLOR_BUFFER_BIT);
+        gl.viewport(0, 0, canvas.width, canvas.height);
+
+        gl.bindBuffer(gl.ARRAY_BUFFER, vertex_buffer);
+
+        if (isBreakoutMode) {
+          ballsBreakOut.forEach(function (ball) {
+            ball.x += ball.speedX * ballSpeed;
+            ball.y += ball.speedY * ballSpeed;
+            drawBall(ball);
+
+            if (ball.y + ball.height <= -0.9) {
+              marcador[0]++;
+              resetBall(ball);
+            }
+
+            checkBlockCollisions(ball);
+            checkLimitsCanvas(ball);
+            bounceBall(ball, player1Breakout);
+          });
+
+          player1Breakout.x += player1Breakout.movement;
+          if (player1Breakout.x < -1) player1Breakout.x = -1;
+          if (player1Breakout.x + player1Breakout.width > 1)
+            player1Breakout.x = 1 - player1Breakout.width;
+
+          drawRectangle(player1Breakout);
+          drawBlocks();
+        } else {
+          balls.forEach(function (ball) {
+            ball.x += ball.speedX * ballSpeed;
+            ball.y += ball.speedY * ballSpeed;
+            drawBall(ball);
+            checkLimitsCanvas(ball);
+
+            if (ball.x <= -1) {
+              marcador[1]++;
+              resetBall(ball);
+            }
+            if (ball.x + ball.width >= 1) {
+              marcador[0]++;
+              resetBall(ball);
+            }
+          });
+
+          player1.y += player1.movement;
+          player2.y += player2.movement;
+
+          if (player1.y < -1) player1.y = -1;
+          if (player1.y + player1.height > 1) player1.y = 1 - player1.height;
+
+          if (player2.y < -1) player2.y = -1;
+          if (player2.y + player2.height > 1) player2.y = 1 - player2.height;
+
+          drawRectangle(player1);
+          drawRectangle(player2);
+
+          checkCollisions();
+
+          updateScore();
+        }
+        gl.bindBuffer(gl.ARRAY_BUFFER, null);
+        window.requestAnimationFrame(render);
+      }
+
+      function updateScore() {
+        var marcadorElement = document.getElementById("marcador");
+        marcadorElement.style.transition = "color 0.5s ease";
+        marcadorElement.style.color = "#ff0";
+        if (marcador[0] >= 10 || marcador[1] >= 10) {
+          var winner = marcador[0] >= 10 ? "Jugador 1" : "Jugador 2";
+          document.getElementById("win-message").innerText = winner + " Wins!";
+          document.getElementById("win-message").style.display = "block";
+
+          setTimeout(function () {
+            document.getElementById("win-message").style.display = "none";
+          }, 1000);
+          marcador[0] = 0;
+          marcador[1] = 0;
+        } else {
+          setTimeout(() => {}, 500);
+          marcadorElement.innerHTML =
+            "Marcador: " + marcador[0] + "-" + marcador[1];
+        }
+      }
+
+      function resetBall(ball) {
+        ball.x = -0.5;
+        ball.y = Math.random() * 0.6 - 0.3;
+        ball.speedX = Math.random() < 0.5 ? -1 : 1;
+        ball.speedY = Math.random() < 0.5 ? -1 : 1;
+      }
+
+      function drawBall(r) {
+        var numSegments = 36;
+        var vertices = [];
+        var centerX = r.x + r.width / 2;
+        var centerY = r.y + r.height / 2;
+        var radius = r.width / 2;
+
+        for (var i = 0; i <= numSegments; i++) {
+          var angle = (i / numSegments) * 2.0 * Math.PI;
+          var x = centerX + radius * Math.cos(angle);
+          var y = centerY + radius * Math.sin(angle);
+          vertices.push(x, y);
+        }
+
+        gl.bindBuffer(gl.ARRAY_BUFFER, vertex_buffer);
+        gl.bufferData( gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STATIC_DRAW);
+        gl.uniform4fv(colorLocation, r.color);
+        gl.drawArrays(gl.TRIANGLE_FAN, 0, vertices.length / 2);
+      }
+
+      function addBall(ballsAdd) {
+        ballsAdd.push({
+          x: -0.5,
+          y: -0.3,
+          width: 0.1,
+          height: 0.02,
+          color: [Math.random(), Math.random(), Math.random(), 1],
+          speedX: Math.random() < 0.5 ? -1 : 1,
+          speedY: Math.random() < 0.5 ? -1 : 1,
+        });
+      }
+
+      function removeBall(ballsAdd) { if (ballsAdd.length > 1) ballsAdd.pop(); }
+
+      function toggleBreakout() {
+        isBreakoutMode = !isBreakoutMode;
+        const button = document.getElementById("breakout-mode");
+        var normalScoreElement = document.getElementById("marcador");
+        button.innerText = isBreakoutMode ? "Modo Normal" : "Modo Breakout";
+
+        const player1Instructions = document.getElementById( "player1-instructions");
+        const player2Instructions = document.getElementById("player2-instructions");
+        const breakoutInstructions = document.getElementById("breakout-instructions");
+
+        if (isBreakoutMode) {
+          initializeBlocks();
+          player1Instructions.style.display = "none";
+          player2Instructions.style.display = "none";
+          breakoutInstructions.style.display = "block";
+          normalScoreElement.style.display = "none";
+          breakoutScoreElement.style.display = "block";
+        } else {
+          player1Instructions.style.display = "block";
+          player2Instructions.style.display = "block";
+          breakoutInstructions.style.display = "none";
+          normalScoreElement.style.display = "block";
+          breakoutScoreElement.style.display = "none";
+        }
+      }
+
+      function initializeBlocks() {
+        blocks = [];
+        if (breakoutScore == 25 || breakoutScore == 0) {
+          localStorage.removeItem(localStorageKey);
+          breakoutScore = 0;
+        }
+
+        const savedBlocks =
+          JSON.parse(localStorage.getItem(localStorageKey)) || [];
+        if (savedBlocks.length > 0) {
+          blocks = savedBlocks;
+        } else {
+          for (var row = 0; row < blockRows; row++) {
+            for (var col = 0; col < blockCols; col++) {
+              blocks.push({
+                x: -0.9 + col * blockWidth * 2,
+                y: 0.8 - row * blockHeight * 2,
+                width: blockWidth,
+                height: blockHeight,
+                color: [Math.random(), Math.random(), Math.random(), 1],
+              });
+            }
+          }
+        }
+      }
+
+      function drawBlocks() {
+        blocks.forEach(function (block) { drawRectangle(block); });
+      }
+
+      function checkBlockCollisions(ball) {
+        blocks.forEach((block, index) => {
+          if (
+            ball.x < block.x + block.width &&
+            ball.x + ball.width > block.x &&
+            ball.y < block.y + block.height &&
+            ball.y + ball.height > block.y
+          ) {
+            ball.speedY *= -1;
+            blocks.splice(index, 1);
+            breakoutScore++;
+            breakoutScoreElement.textContent = "Puntuación: " + breakoutScore;
+            localStorage.setItem(localStorageKey, JSON.stringify(blocks));
+          }
+        });
+      }
+
+      function checkCollisions() {
+        balls.forEach((ball) => {
+          [player1, player2].forEach((player) => { bounceBall(ball, player); });
+        });
+      }
+
+      function bounceBall(ball, player) {
+        if (
+          ball.x <= player.x + player.width &&
+          ball.x + ball.width >= player.x &&
+          ball.y <= player.y + player.height &&
+          ball.y + ball.height >= player.y
+        ) {
+          if (isBreakoutMode) {
+            ball.speedY *= -1;
+            var playerCenterX = player.x + player.width / 2;
+            var impactPoint = ball.x + ball.width / 2 - playerCenterX;
+            var maxBounceAngle = Math.PI / 4; 
+            var normalizedImpact = impactPoint / (player.width / 2); 
+            var bounceAngle = normalizedImpact * maxBounceAngle;
+            ball.speedX = Math.sin(bounceAngle) * Math.abs(ball.speedY);
+            ball.speedY = Math.sign(ball.speedY) * Math.abs(ball.speedY);
+          } else {
+            ball.speedX *= -1;
+            if (ball.speedX > 0) {
+              ball.x = player.x + player.width + 0.01;
+            } else {
+              ball.x = player.x - ball.width - 0.01;
+            }
+            var playerCenterY = player.y + player.height / 2;
+            var impactPoint = ball.y + ball.height / 2 - playerCenterY;
+            var maxBounceAngle = Math.PI / 4;
+            var normalizedImpact = impactPoint / (player.height / 2);
+            var bounceAngle = normalizedImpact * maxBounceAngle;
+            ball.speedY = Math.sin(bounceAngle) * Math.abs(ball.speedX);
+          }
+        }
+      }
+
+      document.onkeydown = onKeyDown;
+      document.onkeyup = onKeyUp;
+      function onKeyDown(key) {
+        const movements = {
+          68: { player: player1Breakout, movement: 0.03 },
+          65: { player: player1Breakout, movement: -0.03 }, 
+          38: { player: player1, movement: 0.02 }, 
+          40: { player: player1, movement: -0.02 },
+          87: { player: player2, movement: 0.02 },
+          83: { player: player2, movement: -0.02 },
+        };
+
+        const speedControls = {
+          39: () => { ballSpeed += ballSpeedIncrement; },
+          37: () => { ballSpeed = Math.max(0, ballSpeed - ballSpeedDecrement); }, 
+        };
+
+        const ballControls = {
+          107: () => { addBall(isBreakoutMode ? ballsBreakOut : balls); },
+          109: () => { removeBall(isBreakoutMode ? ballsBreakOut : balls);},
+          187: () => { addBall(isBreakoutMode ? ballsBreakOut : balls);}, 
+          189: () => { removeBall(isBreakoutMode ? ballsBreakOut : balls);}, 
+        };
+
+        if (movements[key.keyCode]) {
+          const { player, movement } = movements[key.keyCode];
+          player.movement = movement;
+        }
+        if (speedControls[key.keyCode]) speedControls[key.keyCode]();
+        if (ballControls[key.keyCode]) ballControls[key.keyCode]();
+      }
+
+      function onKeyUp(key) {
+        if (key.keyCode === 68 || key.keyCode === 65) player1Breakout.movement = 0;
+        if (key.keyCode === 38 || key.keyCode === 40) player1.movement = 0;
+        if (key.keyCode === 87 || key.keyCode === 83) player2.movement = 0;
+      }
+      function drawRectangle(r) {
+        var x1 = r.x;
+        var x2 = r.x + r.width;
+        var y1 = r.y;
+        var y2 = r.y + r.height;
+        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([x1, y1, x2, y1, x1, y2, x1, y2, x2, y1, x2, y2]), gl.STATIC_DRAW);
+        gl.uniform4fv(colorLocation, r.color);
+        gl.drawArrays(gl.TRIANGLES, 0, 6);
+      }
+
+      window.onload = function () {
+        document.getElementById("form-container").style.display = "flex";
+        document.getElementById("game-container").style.display = "none";
+      };
+    </script>
+  </body>
+</html>
