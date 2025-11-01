@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Mis Juegos WebGL</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background-color: #0d1117;
+      color: #fff;
+      margin: 0;
+      padding: 0;
+    }
+
+    h1 {
+      text-align: center;
+      margin-top: 30px;
+      font-size: 2em;
+      color: #4caf50;
+    }
+
+    .games-container {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 25px;
+      padding: 40px;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    .card {
+      background-color: #161b22;
+      border: 2px solid #30363d;
+      border-radius: 15px;
+      overflow: hidden;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);
+      transition: transform 0.3s, box-shadow 0.3s;
+      cursor: pointer;
+    }
+
+    .card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 6px 15px rgba(76, 175, 80, 0.4);
+      border-color: #4caf50;
+    }
+
+    .card img {
+      width: 100%;
+      height: 180px;
+      object-fit: cover;
+    }
+
+    .card-content {
+      padding: 15px 20px;
+    }
+
+    .card-content h3 {
+      margin: 10px 0;
+      color: #4caf50;
+      font-size: 1.3em;
+    }
+
+    .card-content p {
+      font-size: 0.95em;
+      color: #ccc;
+      margin-bottom: 15px;
+      min-height: 50px;
+    }
+
+    .btn {
+      display: inline-block;
+      background-color: #4caf50;
+      color: white;
+      padding: 8px 15px;
+      border-radius: 8px;
+      text-decoration: none;
+      font-weight: bold;
+      transition: background 0.3s;
+    }
+
+    .btn:hover {
+      background-color: #45a049;
+    }
+
+    footer {
+      text-align: center;
+      padding: 20px;
+      font-size: 0.9em;
+      color: #777;
+      border-top: 1px solid #30363d;
+      margin-top: 40px;
+    }
+  </style>
+</head>
+<body>
+  <h1>🎮 Mis Juegos WebGL</h1>
+
+  <div class="games-container">
+    <!-- Juego 1 -->
+    <div class="card" onclick="window.location.href='https://alejandrodavidarzolasaavedra.github.io/webgl/car_game/'">
+      <img src="img/car_game.gif" alt="Car WebGL">
+      <div class="card-content">
+        <h3>🚗 Car WebGL</h3>
+        <p>Conduce un coche por una carretera animada con árboles y nubes en movimiento. Controla la velocidad y dirección con las flechas.</p>
+        <a href="https://alejandrodavidarzolasaavedra.github.io/webgl/car_game/" class="btn">Jugar</a>
+      </div>
+    </div>
+
+    <!-- Juego 2 -->
+    <div class="card" onclick="window.location.href='https://alejandrodavidarzolasaavedra.github.io/webgl/ping_pong/'">
+      <img src="img/ping_pong.gif" alt="Ping Pong WebGL">
+      <div class="card-content">
+        <h3>🏓 Ping Pong WebGL</h3>
+        <p>Juega al clásico ping pong o cambia al modo Breakout. Personaliza los jugadores y destruye bloques con la pelota.</p>
+        <a href="https://alejandrodavidarzolasaavedra.github.io/webgl/ping_pong/" class="btn">Jugar</a>
+      </div>
+    </div>
+  </div>
+
+  <footer>
+    Creado por <strong>Alejandro David Arzola Saavedra</strong> © 2025
+  </footer>
+</body>
+</html>
