@@ -10,3 +10,13 @@ Cada juego está diseñado para ejecutarse directamente en el navegador, sin nec
 <div align="center">
   <img src="img/car_game.gif">
 </div>
+
+
+🏓 Juego 2: Ping Pong WebGL
+
+Ping Pong WebGL es un juego de tenis de mesa interactivo en 2D creado con WebGL 2.0. El juego también permite personalizar el nombre y color de cada jugador antes de comenzar.
+Permite jugar dos modos de juego:
+
+- Modo Normal → Dos jugadores compiten para alcanzar 10 puntos.
+- Modo Breakout → Un solo jugador destruye bloques con la pelota, al estilo “Arkanoid”.
+
