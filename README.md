@@ -31,6 +31,6 @@ Sistema Solar WebGL es una simulación interactiva que muestra el movimiento de 
 
 
 <div align="center">
-  <img src="img/car_game.gif">
+  <img src="img/solar_system.gif">
 </div>
 
