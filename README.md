@@ -38,7 +38,7 @@ Sistema Solar WebGL es una simulación interactiva que muestra el movimiento de 
 Mundo 3D es un juego de acción en primera persona desarrollado completamente con WebGL 2.0. Explora un mundo tridimensional lleno de pirámides giratorias, octaedros, cubos móviles y un perseguidor negro que te seguirá por el mapa. Usa el espacio para disparar y acumula puntos destruyendo objetos. Pruebalo -> [Link del juego](https://alejandrodavidarzolasaavedra.github.io/webgl/3d_world/)
 
 <div align="center">
-  <img src="img/ping_pong.gif">
+  <img src="img/3d_world.gif">
 </div>
 
 
