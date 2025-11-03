@@ -29,8 +29,17 @@ Permite jugar dos modos de juego:
 
 Sistema Solar WebGL es una simulación interactiva que muestra el movimiento de los planetas alrededor del Sol. Cada planeta tiene su propio color, tamaño, órbita y, en algunos casos, lunas y anillos. El sistema se representa en un entorno 2D con animaciones continuas y efectos visuales suaves. Pruebalo -> [Link del juego](https://alejandrodavidarzolasaavedra.github.io/webgl/solar_system/)
 
-
 <div align="center">
   <img src="img/solar_system.gif">
 </div>
+
+## 🎮 Juego 4: Mundo 3D WebGL
+
+Mundo 3D es un juego de acción en primera persona desarrollado completamente con WebGL 2.0. Explora un mundo tridimensional lleno de pirámides giratorias, octaedros, cubos móviles y un perseguidor negro que te seguirá por el mapa. Usa el espacio para disparar y acumula puntos destruyendo objetos. Pruebalo -> [Link del juego](https://alejandrodavidarzolasaavedra.github.io/webgl/3d_world/)
+
+<div align="center">
+  <img src="img/ping_pong.gif">
+</div>
+
+
 
