@@ -25,7 +25,7 @@ Permite jugar dos modos de juego:
   <img src="img/ping_pong.gif">
 </div>
 
-☀️ Juego 3: Sistema Solar WebGL
+## ☀️ Juego 3: Sistema Solar WebGL
 
 Sistema Solar WebGL es una simulación interactiva que muestra el movimiento de los planetas alrededor del Sol. Cada planeta tiene su propio color, tamaño, órbita y, en algunos casos, lunas y anillos. El sistema se representa en un entorno 2D con animaciones continuas y efectos visuales suaves. Pruebalo -> [Link del juego](https://alejandrodavidarzolasaavedra.github.io/webgl/solar_system/)
 
