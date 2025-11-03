@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <!-- Recomendado ver en pantalla completa -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="Sistema Solar en WebGL - Visualiza los planetas y sus órbitas en un entorno 2D.">
+    <meta name="author" content="Alejandro David Arzola Saavedra">
+    <script type="text/javascript" src="dat.gui.min.js"></script>
+    <script type="text/javascript" src="gl-matrix-min.js"></script>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+
+  <body>
+    <h1 class="title">Sistema Solar en WebGL</h1>
+    <div align="center">
+      <canvas
+        style="width: 90%"
+        width="400"
+        height="400"
+        id="my_Canvas"
+      ></canvas>
+    </div>
+    <script id="vertex-shader" type="x-shader/x-vertex">
+      #version 300 es
+      precision mediump float;
+
+      in vec2 aCoordinates;
+
+      uniform mat4 uModelMatrix;
+      void main(void) {
+          gl_Position = uModelMatrix * vec4(aCoordinates, 0.0, 1.0);
+          gl_PointSize = 10.0;
+      }
+    </script>
+
+    <script id="fragment-shader" type="x-shader/x-fragment">
+      #version 300 es
+      precision mediump float;
+
+      out vec4 fragColor;
+      uniform vec4 uColor;
+
+      void main(void) {
+          fragColor = uColor;
+      }
+    </script>
+
+    <script>
+      document.addEventListener("DOMContentLoaded", function () {
+
+        function glPushMatrix() {
+          const matrix = mat4.create();
+          mat4.copy(matrix, modelMatrix);
+          matrixStack.push(matrix);
+        }
+
+        function glPopMatrix() {
+          modelMatrix = matrixStack.pop();
+        }
+
+        var sun, earth, mercury, venus, saturn, uranus, neptune, pluton, mars, jupiter;
+
+        fetch("solarSystem.json")
+          .then((response) => {
+            if (!response.ok) {
+              throw new Error(
+                "Error al cargar el JSON: " + response.statusText
+              );
+            }
+            return response.json();
+          })
+          .then((data) => {
+            sun = data.sun; earth = data.earth; mercury = data.mercury; venus = data.venus; saturn = data.saturn;
+            uranus = data.uranus; neptune = data.neptune; pluton = data.pluton; mars = data.mars; jupiter = data.jupiter;
+
+            render();
+          })
+          .catch((error) => {
+            console.error("Error:", error);
+          });
+
+        const { vec2, vec3, mat3, mat4 } = glMatrix;
+
+        var gl;
+        var canvas;
+        var vertex_buffer;
+        var colorLocation;
+        var modelMatrixLoc;
+        var matrixStack = [];
+        var shaderProgram;
+        var modelMatrix;
+        var orbitAngle = 0.4;
+
+        var controls = new (function () {
+          this.translateX = 0.0;
+          this.translateY = 0.0;
+          this.rotateZ = 0.0;
+          this.rotateX = 0.0;
+          this.rotateY = 0.0;
+          this.scale = 1;
+        })();
+
+        var gui = new dat.GUI();
+        gui.add(controls, "translateX", -1, 1, 0.01);
+        gui.add(controls, "translateY", -1, 1, 0.01);
+        gui.add(controls, "rotateZ", -180, 180);
+        gui.add(controls, "rotateX", -180, 180);
+        gui.add(controls, "rotateY", -180, 180);
+        gui.add(controls, "scale", 0.1, 5, 0.1);
+
+        function init() {
+          canvas = document.getElementById("my_Canvas");
+          gl = canvas.getContext("webgl2");
+
+          var vertShader = gl.createShader(gl.VERTEX_SHADER);
+          var script = document.getElementById("vertex-shader");
+          var shaderString = script.text.trim();
+          gl.shaderSource(vertShader, shaderString);
+          gl.compileShader(vertShader);
+
+          var fragShader = gl.createShader(gl.FRAGMENT_SHADER);
+          script = document.getElementById("fragment-shader");
+          shaderString = script.text.trim();
+          gl.shaderSource(fragShader, shaderString);
+          gl.compileShader(fragShader);
+
+          shaderProgram = gl.createProgram();
+          gl.attachShader(shaderProgram, vertShader);
+          gl.attachShader(shaderProgram, fragShader);
+          gl.linkProgram(shaderProgram);
+          gl.useProgram(shaderProgram);
+
+          vertex_buffer = gl.createBuffer();
+          gl.bindBuffer(gl.ARRAY_BUFFER, vertex_buffer);
+          var coordLocation = gl.getAttribLocation(
+            shaderProgram,
+            "aCoordinates"
+          );
+
+          translationLoc = gl.getUniformLocation(shaderProgram, "uTranslation");
+          gl.uniform2f(translationLoc, controls.translateX, 0);
+          gl.vertexAttribPointer(coordLocation, 2, gl.FLOAT, false, 0, 0);
+          colorLocation = gl.getUniformLocation(shaderProgram, "uColor");
+          modelMatrixLoc = gl.getUniformLocation(shaderProgram, "uModelMatrix");
+          gl.enableVertexAttribArray(coordLocation);
+          gl.bindBuffer(gl.ARRAY_BUFFER, null);
+        }
+
+        function render(time) {
+          gl.clearColor(0.01, 0.01, 0.01, 1.0);
+          gl.clear(gl.COLOR_BUFFER_BIT);
+          gl.viewport(0, 0, canvas.width, canvas.height);
+
+          gl.bindBuffer(gl.ARRAY_BUFFER, vertex_buffer);
+          modelMatrix = mat4.create();
+          mat4.identity(modelMatrix);
+          mat4.translate(modelMatrix, modelMatrix, [
+            controls.translateX,
+            controls.translateY,
+            0,
+          ]);
+          mat4.rotateZ(
+            modelMatrix,
+            modelMatrix,
+            (controls.rotateZ / 180) * Math.PI
+          );
+
+          mat4.rotateX(
+            modelMatrix,
+            modelMatrix,
+            (controls.rotateX / 180) * Math.PI
+          );
+          mat4.rotateY(
+            modelMatrix,
+            modelMatrix,
+            (controls.rotateY / 180) * Math.PI
+          );
+          mat4.scale(modelMatrix, modelMatrix, [
+            controls.scale,
+            controls.scale,
+            1,
+          ]);
+
+          gl.uniform2f(
+            translationLoc,
+            controls.translateX,
+            controls.translateY
+          );
+
+          glPushMatrix();
+          mat4.scale(modelMatrix, modelMatrix, [sun.width, sun.height, 1]);
+          gl.uniformMatrix4fv(modelMatrixLoc, false, modelMatrix);
+          gl.uniform4fv(colorLocation, sun.color);
+          drawCircle(sun.width / 2, 30);
+          glPopMatrix;
+
+          glPushMatrix();
+          mat4.rotateY(modelMatrix, modelMatrix, Math.PI / 30);
+          mat4.rotateZ(modelMatrix, modelMatrix, Math.PI / 30);
+          glPushMatrix();
+          mat4.scale(modelMatrix, modelMatrix, [ sun.x + 0.915, sun.x + 0.185, 1, ]);
+          gl.uniformMatrix4fv(modelMatrixLoc, false, modelMatrix);
+          gl.uniform4fv(colorLocation, [1, 1, 1, 1]);
+          drawOrbit(0.9, 200, 80);
+          glPopMatrix();
+
+          renderPlanet(saturn, -0.3); 
+          renderPlanet(uranus, -0.4); 
+          renderPlanet(neptune, -0.5); 
+          renderPlanet(pluton, -0.6);
+
+          renderPlanet(mercury, 0.1); 
+          renderPlanet(venus, 0.3); 
+
+          
+          renderPlanet(earth, 0.6); 
+          renderPlanet(mars, -0.6); 
+          renderPlanet(jupiter, -0.6);
+
+          glPushMatrix();
+
+          mat4.scale(modelMatrix, modelMatrix, [ sun.x + 0.915, sun.y + 0.185, 1, ]);
+          gl.uniformMatrix4fv(modelMatrixLoc, false, modelMatrix);
+          gl.uniform4fv(colorLocation, [ 1 + orbitAngle, 1 + orbitAngle, 1 + orbitAngle, 1, ]);
+          
+          orbitAngle += 0.001;
+          drawOrbit(orbitAngle, 20 + orbitAngle, 40 + orbitAngle);
+          drawOrbit(orbitAngle / 2, 20 + orbitAngle * 8, 40 + orbitAngle);
+          
+          
+          glPopMatrix();
+          gl.bindBuffer(gl.ARRAY_BUFFER, null);
+          window.requestAnimationFrame(render);
+        }
+
+        function renderPlanet(planet, orbitZ) {
+          glPushMatrix();
+          planet.angle += 0.01;
+          mat4.rotateZ(modelMatrix, modelMatrix, planet.angle);
+          mat4.translate(modelMatrix, modelMatrix, [ planet.x, planet.y, orbitZ, ]); 
+          mat4.scale(modelMatrix, modelMatrix, [ planet.width, planet.height, 1,]);
+          gl.uniformMatrix4fv(modelMatrixLoc, false, modelMatrix);
+          gl.uniform4fv(colorLocation, planet.color);
+          drawCircle(planet.width / 2, 30);
+
+          mat4.rotateY(modelMatrix, modelMatrix, -Math.PI / 30);
+          glPushMatrix();
+          mat4.scale(modelMatrix, modelMatrix, [ planet.x + 0.915, planet.x + 0.185, 1,]);
+          gl.uniformMatrix4fv(modelMatrixLoc, false, modelMatrix);
+          gl.uniform4fv(colorLocation, [1, 1, 1, 1]);
+          drawOrbit(0.9, 20, 40);
+          glPopMatrix();
+
+          for (let moon of planet.moons) {
+            renderMoon(moon, planet.angle, orbitZ); 
+          }
+
+          if (planet.rings) {
+            glPushMatrix();
+            mat4.scale(modelMatrix, modelMatrix, [ planet.width * 2, planet.height * 2, 1,]);
+            gl.uniformMatrix4fv(modelMatrixLoc, false, modelMatrix);
+            gl.uniform4fv(colorLocation, [0.8, 0.6, 0.3, 1]);
+            drawOrbit(planet.width, 0, 50);
+            glPopMatrix();
+          }
+
+          glPopMatrix();
+        }
+
+        function renderMoon(moon, planetAngle, orbitZ) {
+          glPushMatrix();
+          moon.angle += 0.02; 
+          mat4.rotateZ(modelMatrix, modelMatrix, moon.angle);
+          mat4.translate(modelMatrix, modelMatrix, [ moon.x, moon.y, orbitZ / 2,]);
+          mat4.scale(modelMatrix, modelMatrix, [moon.width, moon.height, 1]);
+
+          glPushMatrix();
+          drawOrbit(moon.x, orbitZ / 2 + 0.25, 50); 
+          glPopMatrix();
+
+          gl.uniformMatrix4fv(modelMatrixLoc, false, modelMatrix);
+          gl.uniform4fv(colorLocation, moon.color);
+          drawCircle(moon.width / 2, 30);
+          glPopMatrix();
+        }
+
+        function drawOrbit(radius, zOffset, numSegments) {
+          const vertices = [];
+          for (let i = 0; i <= numSegments; i++) {
+            const angle = (i / numSegments) * 2 * Math.PI;
+            const x = radius * Math.cos(angle);
+            const y = radius * Math.sin(angle);
+            vertices.push(x, y);
+          }
+          const vertexArray = new Float32Array(vertices);
+          gl.bindBuffer(gl.ARRAY_BUFFER, vertex_buffer);
+          gl.bufferData(gl.ARRAY_BUFFER, vertexArray, gl.STATIC_DRAW);
+          gl.uniform3f(modelMatrixLoc, 0, 0, zOffset); 
+          gl.drawArrays(gl.LINE_LOOP, 0, numSegments + 1); 
+        }
+
+        function drawCircle(radius, numSegments) {
+          const vertices = [];
+          for (let i = 0; i <= numSegments; i++) {
+            const angle = (i / numSegments) * 2 * Math.PI;
+            const x = radius * Math.cos(angle);
+            const y = radius * Math.sin(angle);
+            vertices.push(x, y);
+          }
+          const vertexArray = new Float32Array(vertices);
+          gl.bufferData(gl.ARRAY_BUFFER, vertexArray, gl.STATIC_DRAW);
+          gl.drawArrays(gl.TRIANGLE_FAN, 0, vertexArray.length / 2);
+        }
+        window.onload = init;
+      });
+    </script>
+  </body>
+</html>
