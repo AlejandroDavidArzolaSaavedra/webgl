@@ -1,0 +1,137 @@
+body, html {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  background-color: #1e1e1e;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  font-family: 'Arial', sans-serif;
+}
+#collision {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  color: #ffffff;
+  font-size: 24px;
+  background: rgba(0, 0, 0, 0.5);
+  padding: 10px 20px;
+  border-radius: 8px;
+  box-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
+  transition: transform 0.3s ease;
+  
+}
+#collision:hover {
+  transform: scale(1.1);
+}
+
+canvas {
+  border: 2px solid #ffffff;
+  box-shadow: 0 0 20px rgba(255, 255, 255, 0.5);
+  border-radius: 8px;
+  width: 80%;
+  max-width: 800px;
+  aspect-ratio: 5 / 4;
+  background-color: #2e2e2e;
+  margin-top: 10px;
+}
+
+.shiny-text {
+  color: white; 
+  font-family: 'Arial Black', sans-serif;
+  text-align: center; 
+  margin: 10px 0; 
+  font-size: 60px;
+
+  text-shadow:
+    0 0 5px #123456,
+    0 0 10px #123456,
+    0 0 20px #123456,
+    0 0 30px #123456,
+    0 0 40px #123456,
+    0 0 50px #123456,
+    0 0 60px #123456;
+  animation: shine 4s infinite;
+}
+
+@keyframes shine {
+  0% {
+    text-shadow:
+      0 0 5px #123456,
+      0 0 10px #123456,
+      0 0 20px #123456,
+      0 0 30px #123456,
+      0 0 40px #123456,
+      0 0 50px #123456,
+      0 0 60px #123456;
+  }
+  50% {
+    text-shadow:
+      0 0 10px #123456,
+      0 0 20px #123456,
+      0 0 30px #123456,
+      0 0 40px #123456,
+      0 0 50px #123456,
+      0 0 60px #123456,
+      0 0 70px #123456;
+  }
+  100% {
+    text-shadow:
+      0 0 5px #123456,
+      0 0 10px #123456,
+      0 0 20px #123456,
+      0 0 30px #123456,
+      0 0 40px #123456,
+      0 0 50px #123456,
+      0 0 60px #123456;
+  }
+}
+
+
+  #controls {
+    text-align: center;
+    margin: 20px;
+  }
+
+.button-acelerar{
+  background-color: #4CAF50; 
+
+.button-acelerar:hover{
+  background-color: #45a049; 
+  transform: scale(1.05);
+}
+
+.button-frenar{
+  background-color: red;
+}
+
+.button-frenar:hover{
+   background-color: #Fc352c; 
+  transform: scale(1.05);
+}
+
+  button {
+    font-weight:bold;
+    border: none;
+    color: white;
+    padding: 12px 24px;
+    text-align: center;
+    text-decoration: none;
+    display: inline-block;
+    font-size: 16px;
+    margin: 8px;
+    cursor: pointer;
+    border-radius: 12px;
+    transition: background-color 0.3s ease, transform 0.2s ease;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  }
+
+
+  button:active {
+    background-color: #3e8e41;
+    transform: scale(1); 
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2); 
+  }
+}

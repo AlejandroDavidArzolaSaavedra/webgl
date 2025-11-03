@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+<html lang="es">
+  <!-- Recomendable jugarlo en pantalla completa -->
+  <head>
+    <meta name="author" content="Alejandro David Arzola Saavedra" />
+    <link rel="stylesheet" href="style.css" />
+    <title>3D World en WebGL</title>
+    <meta name="viewport" content="width=device-width" />
+    <script type="text/javascript" src="dat.gui.min.js"></script>
+    <script type="text/javascript" src="gl-matrix-min.js"></script>
+  </head>
+  <body>
+    <div id="collision">Puntos: 0</div>
+    <h1 class="shiny-text" style="font-size: 3.5rem">Mundo 3D 🤓</h1>
+    <canvas style="width: 95%" width="500" height="500" id="my_Canvas"></canvas>
+    <div id="controls" style="text-align: center; margin: 10px">
+      <p class="shiny-text" style="font-size: 1.2rem"> Huye que el cubo negro te persigue!!</p>
+      <p class="shiny-text" style="font-size: 0.8rem; display:inline-block; padding-bottom: 0rem;"> Con el "espacio" puedes disparar  <div id="speedDisplay" class="shiny-text" style="margin-left:3.5rem;display:inline-block; font-size: 0.8rem;">Velocidad: X1</div></p>
+      <button class="button-acelerar" id="accelerateBtn">Acelerar</button>
+      <button class="button-frenar" id="brakeBtn">Frenar</button>
+    </div>
+    <script id="vertex-shader" type="x-shader/x-vertex">
+       #version 300 es
+       precision mediump float;
+
+       uniform mat4 uModelMatrix;
+       uniform mat4 uViewMatrix;
+       in vec3 aCoordinates;
+
+      void main(void) {
+       gl_Position = uViewMatrix * uModelMatrix * vec4(aCoordinates, 1.0);
+       }
+    </script>
+
+    <script id="fragment-shader" type="x-shader/x-fragment">
+        #version 300 es
+        precision mediump float;
+
+        out vec4 fragColor;
+        uniform vec4 uColor;
+
+        void main(void) {
+          fragColor = uColor;
+      }
+    </script>
+
+    <script>
+      var rotateX = 0, rotateY = 0;
+      var mouseX, mouseY;
+      var matrixStack = [];
+      var index_buffer;
+      var zoomFactor = 1;
+      var viewMatrixLoc;
+      let scale = 1; let scaleDirection = 1; let scaleSpeed = 0.01;
+
+      function glPushMatrix() {
+        const matrix = mat4.create();
+        mat4.copy(matrix, modelMatrix);
+        matrixStack.push(matrix);
+      }
+
+      function glPopMatrix() { modelMatrix = matrixStack.pop(); }
+
+      const { vec2, vec3, mat3, mat4 } = glMatrix;
+      
+      var player = { x: 0, y: 0.5, z: 10, ori: -Math.PI / 2, speed: 0.5, maxSpeed: 2, acceleration: 0.002, deceleration: 0.001, friction: 0.98, };
+      var pyramids = [ { x: 0, y: 1, z: -2, color: [1, 1, 0, 1], size: [0.5, 0.5, 0.5], rotation: 0, rotSpeed: 0.01, }, { x: 2, y: 1, z: -3, color: [0, 1, 1, 1], size: [0.5, 0.5, 0.5], rotation: 0, rotSpeed: 0.02, }, ];        
+      var octahedrons = [ { x: -2, y: 1, z: -3, color: [0.1, 0.4, 0.6, 1], size: [0.5, 0.5, 0.5], rotation: 0, rotSpeed: 0.01, }, ];
+      var chaser = { x: -2, y: 0, z: 2, color: [0, 0, 1, 1], speed: 0.01, rotation: 0, rotSpeed: 0.2, };
+      var wallCubes = [ { x: -3, y: 1, z: -5, color: [0, 0, 0, 1] }, { x: -3.25, y: 2, z: -5, color: [0, 0, 0, 1] }, { x: -3.25, y: 3, z: -5, color: [0, 0, 0, 1] }, { x: -3, y: 4, z: -5, color: [0, 0, 0, 1] }, { x: -4, y: 1, z: -5, color: [0, 0, 0, 1] }, { x: -4, y: 4, z: -5, color: [0, 0, 0, 1] }, { x: -2.5, y: 4, z: -5, color: [0, 0, 0, 1] }, { x: -2.5, y: 1, z: -5, color: [0, 0, 0, 1] }, { x: -1, y: 4, z: -5, color: [0, 0, 0, 1] }, { x: 0, y: 4, z: -5, color: [0, 0, 0, 1] }, { x: 1, y: 4, z: -5, color: [0, 0, 0, 1] }, { x: 1, y: 2, z: -5, color: [0, 0, 0, 1] }, { x: -1, y: 1, z: -5, color: [0, 0, 0, 1] }, { x: 0, y: 1, z: -5, color: [0, 0, 0, 1] }, { x: 1, y: 1, z: -5, color: [0, 0, 0, 1] }, { x: -1, y: 3, z: -5, color: [0, 0, 0, 1] }, { x: -1, y: 2, z: -5, color: [0, 0, 0, 1] }, ];
+      let cubes = [ { x: -2, y: 5, z: 2, color: [0, 0, 1, 1], speed: 0.01, rotation: 0, rotSpeed: 0.2, }, { x: 2, y: 4, z: 2, color: [0.8, 0.5, 0.8, 0.9], speed: -0.01, rotation: 0, rotSpeed: 0.02, }, { x: -1, y:3, z:4, color: [1, 0, 0, 1], speed: 0.02, rotation: 0, rotSpeed: 0.02, }, { x: 1, y: 8, z: 2, color: [0, 1, 0, 1], speed: -0.012, rotation: 0, rotSpeed: 0.02, }, { x: 3, y: 3, z: 1, color: [0.8, 0.5, 0, 1], speed: -0.02, rotation: 0, rotSpeed: 0.02, }, { x: 3, y: 4, z: 4, color: [0.2, 0.1, 0.5, 1], speed: -0.02, rotation: 0, rotSpeed: 0.02, }, ];
+        
+
+      var modelMatrixLoc;var matrixStack = []; var bullets = [];
+        var collision = 0;
+      
+        var vertex_buffer;
+        var colorLocation; var index_buffer;
+
+        var rotateX = 0, rotateY = 0;
+        var mouseX, mouseY; var zoomFactor = 1;
+        var viewMatrixLoc, modelMatrixLoc;
+        let cylinderVertexBuffer; let cylinderIndexBuffer;
+
+      function init() {
+          canvas = document.getElementById("my_Canvas");
+          gl = canvas.getContext("webgl2");
+          var vertShader = gl.createShader(gl.VERTEX_SHADER);
+          var script = document.getElementById("vertex-shader");
+          var shaderString = script.text.trim();
+          gl.shaderSource(vertShader, shaderString);
+          gl.compileShader(vertShader);
+          var fragShader = gl.createShader(gl.FRAGMENT_SHADER);
+          script = document.getElementById("fragment-shader");
+          shaderString = script.text.trim();
+          gl.shaderSource(fragShader, shaderString);
+          gl.compileShader(fragShader);
+          var shaderProgram = gl.createProgram();
+          gl.attachShader(shaderProgram, vertShader);
+          gl.attachShader(shaderProgram, fragShader);
+          gl.linkProgram(shaderProgram);
+          gl.useProgram(shaderProgram);
+          vertex_buffer = gl.createBuffer();
+          index_buffer = gl.createBuffer();
+          gl.bindBuffer(gl.ARRAY_BUFFER, vertex_buffer);
+          var coordLocation = gl.getAttribLocation( shaderProgram,"aCoordinates");
+          gl.vertexAttribPointer(coordLocation, 3, gl.FLOAT, false, 0, 0);
+          gl.enableVertexAttribArray(coordLocation);
+
+          colorLocation = gl.getUniformLocation(shaderProgram, "uColor");
+          modelMatrixLoc = gl.getUniformLocation(shaderProgram, "uModelMatrix");
+          viewMatrixLoc = gl.getUniformLocation(shaderProgram, "uViewMatrix");
+
+          cylinderVertexBuffer = gl.createBuffer(); cylinderIndexBuffer = gl.createBuffer();
+          gl.bindBuffer(gl.ARRAY_BUFFER, cylinderVertexBuffer);
+          gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, cylinderIndexBuffer);
+
+          gl.enable(gl.DEPTH_TEST);
+          gl.bindBuffer(gl.ARRAY_BUFFER, null);
+
+          document.onmousedown = onMouseDown;
+          document.onmousemove = onMouseMove;
+          document.onwheel = zoom;
+          document.onkeydown = onKeyDown;
+          render();
+        }
+      
+      let cubes2 = [ { x: -0.5, y: 0, z: -0.5 }, { x: -2.5, y: 0, z: -1.5 }, { x: -2.5, y: 0, z: 1.5 }, { x: 2.5, y: 0, z: 1.5 }, { x: 2.5, y: 0, z: -1.5 }, { x: chaser.x, y: chaser.y, z: chaser.z }, { x: -2, y: 5, z: 2}, { x: 2, y: 4, z: 2}, { x: -1, y: 3, z: 4}, { x: 1, y: 8, z: 2}, { x: 3, y: 3, z: 1}, { x: 3, y: 4, z: 4 } ];
+
+      function render() {
+        gl.clearColor(0.9, 0.92, 0.93, 1.0);
+        gl.clear(gl.COLOR_BUFFER_BIT);
+        gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+        gl.viewport(0, 0, canvas.width, canvas.height);
+        gl.bindBuffer(gl.ARRAY_BUFFER, vertex_buffer);
+        viewMatrix = mat4.create();
+        mat4.perspective( viewMatrix, Math.PI / 4, canvas.width / canvas.height, 1, 30 );
+        gl.uniformMatrix4fv(viewMatrixLoc, false, viewMatrix);
+        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, index_buffer);
+        modelMatrix = mat4.create();
+        mat4.identity(modelMatrix);
+        eye = [player.x, player.y, player.z];
+        v = [ player.x + Math.cos(player.ori), player.y, player.z + Math.sin(player.ori),];
+        mat4.lookAt(modelMatrix, eye, v, [0, 1, 0]);
+        mat4.scale(modelMatrix, modelMatrix, [ zoomFactor, zoomFactor, zoomFactor, ]);
+        mat4.rotateX(modelMatrix, modelMatrix, rotateX);
+        mat4.rotateY(modelMatrix, modelMatrix, rotateY);
+
+        
+        glRenderGround(10, 20);
+        wallCubes.forEach((cube) => { myGlRenderCubeIBO( cube.x, cube.y, cube.z, cube.color, [1, 1, 1], 0 ); });
+        scale += scaleSpeed * scaleDirection;
+        if (scale > 1.5 || scale < 0.5) scaleDirection *= -1;
+        
+        glRenderCubeIBO([-0.5, 0, -0.5], [0.3, 0.5, 1, 1]);
+        glRenderCubeIBO([-2.5, 0, -1.5], [0.2, 0.2, 1, 1]);
+        glRenderCubeIBO([-2.5, 0, 1.5], [0.5, 0.1, 0.3, 1]);
+        glRenderCubeIBO([2.5, 0, 1.5], [0.5, 0.9, -0.2, 1]);
+        glRenderCubeIBO([2.5, 0, -1.5], [1, 0, 0, 1]);
+        
+        cubes.forEach((cube) => {
+            cube.x += cube.speed;
+            if (cube.x > 4) { cube.x = -4; } 
+            if (cube.x < -4) { cube.x = 4; }
+            cube.rotation += cube.rotSpeed;
+            myGlRenderCubeIBO( cube.x, cube.y, cube.z, cube.color, [scale / 2, scale / 2, scale / 2], cube.rotation );
+          });
+        
+        
+        updateChaser(chaser, player);
+        myGlRenderCubeIBO( chaser.x, chaser.y, chaser.z, [0.2, 0.2, 0.2], [scale / 2, scale / 2, scale / 2], chaser.rotation ); 
+        
+        pyramids.forEach((pyramid) => {
+            pyramid.rotation += pyramid.rotSpeed;
+            glRenderPyramid( pyramid.x, pyramid.y, pyramid.z, pyramid.color, pyramid.size, pyramid.rotation );
+          });
+          
+          octahedrons.forEach((octahedron) => {
+            octahedron.rotation += octahedron.rotSpeed;
+            glRenderOctahedron( octahedron.x, octahedron.y, octahedron.z, octahedron.color, octahedron.size, octahedron.rotation );
+          });
+        
+          for (let i = 0; i < bullets.length; i++) { const bullet = bullets[i]; bullet.x += Math.cos(bullet.ori) * 0.1; bullet.z += Math.sin(bullet.ori) * 0.1; drawBullet(bullets[i]); }
+
+
+          
+          for (let i = bullets.length - 1; i >= 0; i--) {
+            const bullet = bullets[i];
+            if (checkCollision(bullet)) {
+              bullets.splice(i, 1);
+              collision++;
+              updateScore();
+            } else if (bullet.y < 0 || bullet.z < -10) {
+              bullets.splice(i, 1);
+            }
+          }
+
+        updateSpeedDisplay();
+        
+        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, null);
+        gl.bindBuffer(gl.ARRAY_BUFFER, null);
+        window.requestAnimationFrame(render);
+      }
+0
+      function glRenderCubeIBO(matrix, color) {
+        glPushMatrix();
+        mat4.translate(modelMatrix, modelMatrix, matrix);
+        gl.uniformMatrix4fv(modelMatrixLoc, false, modelMatrix);
+        arrayV = new Float32Array([ 0, 0, 0, 1, 0, 0, 1, 1, 0, 0, 1, 0, 0, 0, 1, 1, 0, 1, 1, 1, 1, 0, 1, 1, ]);
+        gl.bufferData(gl.ARRAY_BUFFER, arrayV, gl.STATIC_DRAW);
+        arrayI = new Uint16Array([ 0, 1, 1, 2, 2, 3, 3, 0, 4, 5, 5, 6, 6, 7, 7, 4, 0, 4, 1, 5, 2, 6, 3, 7, ]); 
+        arrayF = new Uint16Array([ 1, 0, 3, 1, 3, 2, 4, 5, 6, 4, 6, 7, 7, 6, 2, 7, 2, 3, 0, 1, 5, 0, 5, 4, 5, 1, 2, 5, 2, 6, 0, 4, 7, 0, 7, 3, ]);
+        gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, arrayF, gl.STATIC_DRAW);
+        gl.uniform4fv(colorLocation, color);
+        gl.drawElements(gl.TRIANGLES, 36, gl.UNSIGNED_SHORT, 0);
+        gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, arrayI, gl.STATIC_DRAW);
+        gl.uniform4fv(colorLocation, [0, 0, 0, 1]);
+        gl.drawElements(gl.LINES, 24, gl.UNSIGNED_SHORT, 0);
+        delete arrayV;
+        delete arrayI;
+        glPopMatrix();
+      }
+      function updateChaser(chaser, player) {
+          const chaseSpeed = 0.02; 
+          const dx = player.x - chaser.x;
+          const dz = player.z - chaser.z;
+          const distance = Math.sqrt(dx * dx + dz * dz);
+          if (distance > 0) { chaser.x += (dx / distance) * chaseSpeed; chaser.z += (dz / distance) * chaseSpeed; }
+        }
+      
+      
+      document.onkeydown = onKeyDown;
+      function onKeyDown(key) {
+        switch (key.keyCode) {
+          case 38: {
+            player.x = player.x + 0.1 * Math.cos(player.ori);
+            player.z = player.z + 0.1 * Math.sin(player.ori);
+            break;
+          }
+          case 40: {
+            player.x = player.x - 0.1 * Math.cos(player.ori);
+            player.z = player.z - 0.1 * Math.sin(player.ori);
+            break;
+          }
+          case 37: {
+            player.ori -= 0.02;
+            break;
+          }
+          case 39: {
+            player.ori += 0.02;
+            break;
+          }
+        }
+      }
+
+      function glRenderGround(size, n) {
+          glPushMatrix();
+          mat4.scale(modelMatrix, modelMatrix, [size, size, size]);
+          mat4.translate(modelMatrix, modelMatrix, [-0.5, 0, -0.5]);
+          gl.uniformMatrix4fv(modelMatrixLoc, false, modelMatrix);
+          let k = 0;
+          let arrayV = new Float32Array(12 * n);
+          for (let i = 0; i < n; i++) { arrayV[k++] = i / (n - 1); arrayV[k++] = 0; arrayV[k++] = 0; arrayV[k++] = i / (n - 1); arrayV[k++] = 0; arrayV[k++] = 1; }
+          for (let i = 0; i <= n; i++) { arrayV[k++] = 0; arrayV[k++] = 0; arrayV[k++] = i / (n - 1); arrayV[k++] = 1; arrayV[k++] = 0; arrayV[k++] = i / (n - 1); }
+          gl.bufferData(gl.ARRAY_BUFFER, arrayV, gl.STATIC_DRAW);
+          gl.drawArrays(gl.LINES, 0, 4 * n);
+          glPopMatrix();
+        }
+      
+        function myGlRenderCubeIBO( x, cubePositionY, z, color, size, rotationAngle ) {
+          glPushMatrix();
+          mat4.translate(modelMatrix, modelMatrix, [x, cubePositionY, z]);
+          mat4.rotateY(modelMatrix, modelMatrix, rotationAngle);
+          mat4.scale(modelMatrix, modelMatrix, size);
+          gl.uniformMatrix4fv(modelMatrixLoc, false, modelMatrix);
+          let arrayV = new Float32Array([ 0, 0, 0, 1, 0, 0, 1, 1, 0, 0, 1, 0, 0, 0, 1, 1, 0, 1, 1, 1, 1, 0, 1, 1, ]);
+          gl.bufferData(gl.ARRAY_BUFFER, arrayV, gl.STATIC_DRAW);
+          let arrayF = new Uint16Array([ 4, 5, 6, 0, 3, 2, 2, 1, 0, 4, 6, 7, 7, 6, 2, 7, 2, 3, 5, 4, 0, 0, 1, 5, 1, 2, 6, 1, 6, 5, 0, 4, 7, 7, 3, 0, ]);
+          gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, arrayF, gl.STATIC_DRAW);
+          gl.uniform4fv(colorLocation, color);
+          gl.drawElements(gl.TRIANGLES, 36, gl.UNSIGNED_SHORT, 0);
+          let arrayI = new Uint16Array([ 0, 1, 1, 2, 2, 3, 3, 0, 4, 5, 5, 6, 6, 7, 7, 4, 0, 4, 1, 5, 2, 6, 3, 7, ]);
+          gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, arrayI, gl.STATIC_DRAW);
+          gl.uniform4fv(colorLocation, [0, 0, 0, 1]);
+          gl.drawElements(gl.LINES, 24, gl.UNSIGNED_SHORT, 0);
+          glPopMatrix();
+        }
+      
+      
+      function glRenderOctahedron(x, y, z, color, size, rotationAngle) {
+          glPushMatrix();
+          mat4.translate(modelMatrix, modelMatrix, [x, y, z]);
+          mat4.rotateY(modelMatrix, modelMatrix, rotationAngle);
+          mat4.scale(modelMatrix, modelMatrix, size);
+          gl.uniformMatrix4fv(modelMatrixLoc, false, modelMatrix);
+          let arrayV = new Float32Array([ 0.0, 1.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, -1.0, 0.0, 0.0, 0.0, 0.0, -1.0, 0.0, -1.0, 0.0, ]);
+          gl.bufferData(gl.ARRAY_BUFFER, arrayV, gl.STATIC_DRAW);
+          let arrayF = new Uint16Array([ 0, 1, 2, 0, 2, 3, 0, 3, 4, 0, 4, 1, 5, 1, 2, 5, 2, 3, 5, 3, 4, 5, 4, 1, ]);
+          gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, arrayF, gl.STATIC_DRAW);
+          gl.uniform4fv(colorLocation, color);
+          gl.drawElements(gl.TRIANGLES, 24, gl.UNSIGNED_SHORT, 0);
+          let arrayI = new Uint16Array([ 0, 1, 0, 2, 0, 3, 0, 4, 5, 1, 5, 2, 5, 3, 5, 4, 1, 2, 2, 3, 3, 4, 4, 1, ]);
+          gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, arrayI, gl.STATIC_DRAW);
+          gl.uniform4fv(colorLocation, [0, 0, 0, 1]);
+          gl.drawElements(gl.LINES, 24, gl.UNSIGNED_SHORT, 0);
+          glPopMatrix();
+        }
+
+        function glRenderPyramid(x, y, z, color, size, rotationAngle) {
+          glPushMatrix();
+          mat4.translate(modelMatrix, modelMatrix, [x, y, z]);
+          mat4.rotateY(modelMatrix, modelMatrix, rotationAngle);
+          mat4.scale(modelMatrix, modelMatrix, size);
+          gl.uniformMatrix4fv(modelMatrixLoc, false, modelMatrix);
+          let arrayV = new Float32Array([ 0.0, 1.0, 0.0, -1.0, -1.0, 1.0, 1.0, -1.0, 1.0, 0.0, -1.0, -1.0, ]);
+          gl.bufferData(gl.ARRAY_BUFFER, arrayV, gl.STATIC_DRAW);
+          let arrayF = new Uint16Array([ 0, 1, 2, 0, 2, 3, 0, 3, 1, 1, 3, 2, ]);
+          gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, arrayF, gl.STATIC_DRAW);
+          gl.uniform4fv(colorLocation, color);
+          gl.drawElements(gl.TRIANGLES, 12, gl.UNSIGNED_SHORT, 0);
+          let arrayI = new Uint16Array([ 0, 1, 0, 2, 0, 3, 1, 2, 2, 3, 3, 1, ]);
+          gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, arrayI, gl.STATIC_DRAW);
+          gl.uniform4fv(colorLocation, [0, 0, 0, 1]);
+          gl.drawElements(gl.LINES, 12, gl.UNSIGNED_SHORT, 0);
+          glPopMatrix();
+        }
+        
+      function glRenderCylinder(x, y, z, color, scale) {
+          glPushMatrix();
+          const segments = 16; 
+          const height = scale[2]; 
+          const radius = scale[0];
+          const tipLength = height * 0.2; 
+          
+          let vertices = [];
+          let indices = [];
+
+          for (let i = 0; i <= segments; i++) {
+            const angle = (i / segments) * 2 * Math.PI;
+            const xPos = Math.cos(angle) * radius;
+            const zPos = Math.sin(angle) * radius;
+            vertices.push(xPos, height / 2, zPos);
+            vertices.push(xPos, -height / 2, zPos);
+          }
+
+          for (let i = 0; i <= segments; i++) {
+            const angle = (i / segments) * 2 * Math.PI; 
+            const xPos = Math.cos(angle) * radius * 0.5;
+            const zPos = Math.sin(angle) * radius * 0.5;
+            vertices.push(xPos, height / 2 + tipLength, zPos);
+          }
+
+          for (let i = 0; i < segments; i++) {
+            const next = (i + 1) % segments;
+
+            indices.push(i * 2, next * 2, next * 2 + 1);
+            indices.push(i * 2, next * 2 + 1, i * 2 + 1);
+          }
+
+          const bodyBaseIndex = segments * 2;
+          for (let i = 0; i < segments; i++) {
+            const next = (i + 1) % segments;
+            indices.push(
+              bodyBaseIndex,
+              next + bodyBaseIndex + 1,
+              i + bodyBaseIndex + 1
+            );
+          }
+
+          for (let i = 0; i < segments; i++) {
+            const next = (i + 1) % segments;
+            indices.push(1, next * 2 + 1, i * 2 + 1);
+          }
+          
+          gl.bindBuffer(gl.ARRAY_BUFFER, cylinderVertexBuffer);
+          gl.bufferData( gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STATIC_DRAW );
+          gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, cylinderIndexBuffer);
+          gl.bufferData( gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(indices), gl.STATIC_DRAW );
+          
+          mat4.translate(modelMatrix, modelMatrix, [x, y, z]);
+          gl.uniformMatrix4fv(modelMatrixLoc, false, modelMatrix);
+          gl.drawElements(gl.TRIANGLES, indices.length, gl.UNSIGNED_SHORT, 0);
+          glPopMatrix();
+        }
+        
+        function updateScore() { document.getElementById("collision").textContent = "Colisión: " + collision; }
+      
+        function drawBullet(bullet) {
+          glPushMatrix();
+          mat4.translate(modelMatrix, modelMatrix, [ bullet.x, bullet.y / 2, bullet.z, ]);
+          mat4.rotateY(modelMatrix, modelMatrix, bullet.ori);
+          mat4.scale(modelMatrix, modelMatrix, [0.2, 0.2, 0.05]);
+          gl.uniformMatrix4fv(modelMatrixLoc, false, modelMatrix);
+          glRenderCylinder(0, 0.1, 0, [0, 0, 0, 0.1], [0.9, -0.2, 0.3]);
+          glPopMatrix();
+        }
+
+        function checkCollision(bullet) {
+          for (let i = 0; i < cubes2.length; i++) {
+            let cube = cubes2[i];
+            let cubeSize = 1;
+            if ( bullet.x + 0.25 > cube.x - 0.5 * cubeSize && bullet.x - 0.25 < cube.x + 0.5 * cubeSize && bullet.y + 0.25 > cube.y - 0.5 * cubeSize && bullet.y - 0.25 < cube.y + 0.5 * cubeSize && bullet.z + 0.25 > cube.z - 0.5 * cubeSize && bullet.z - 0.25 < cube.z + 0.5 * cubeSize ) {
+              console.log("Colisión detectada con el cubo en la posición", cube);
+              return true;
+            }
+          }
+          
+          return false;
+        }
+
+        function shoot() {
+          var bullet = { x: player.x, y: player.y, z: player.z, ori: player.ori, };
+          bullets.push(bullet);
+        }
+
+      function zoom(e) { if (e.deltaY < 0) zoomFactor *= 1.1; else zoomFactor *= 0.9; }
+      
+      function onMouseDown(e) { if (e.buttons == 1 && e.srcElement == canvas) { mouseX = e.pageX; mouseY = e.pageY; } }
+      
+      function onKeyDown(key) {
+          switch (key.keyCode) {
+            case 38: {
+              if (player.speed > player.maxSpeed) {
+                player.speed = player.maxSpeed;
+              }
+              player.x += 0.1 * player.speed * Math.cos(player.ori);
+              player.z += 0.1 * player.speed * Math.sin(player.ori);
+              break;
+            }
+            case 40: {
+              player.x -= 0.1 * player.speed * Math.cos(player.ori);
+              player.z -= 0.1 * player.speed * Math.sin(player.ori);
+              break;
+            }
+            case 37: {
+              player.ori -= 0.02;
+              break;
+            }
+            case 39: {
+              player.ori += 0.02;
+              break;
+            }
+            case 32: {
+              shoot();
+              break;
+            }
+          }
+        }
+      
+      function onMouseMove(e) {
+          if (e.buttons == 1 && e.srcElement == canvas) {
+            rotateY += (e.pageX - mouseX) * 0.01; rotateX += (e.pageY - mouseY) * 0.01;
+            mouseX = e.pageX; mouseY = e.pageY;
+          }
+        }
+      
+      const accelerateBtn = document.getElementById("accelerateBtn");
+      const brakeBtn = document.getElementById("brakeBtn");
+      const speedDisplay = document.getElementById("speedDisplay");
+
+        
+        function updateSpeedDisplay() {
+          if (player.speed === player.maxSpeed) {
+            speedDisplay.textContent = "Velocidad: MÁXIMO"; 
+          } else {
+            let speedFactor = Math.floor(player.speed / 0.2); 
+            if (speedFactor < 1) speedFactor = 1; 
+            speedDisplay.textContent = `Velocidad: X${speedFactor}`; 
+          }
+        }
+        accelerateBtn.addEventListener("click", () => {
+          player.speed += player.acceleration * 30;
+          console.log("acelerar");
+          if (player.speed > player.maxSpeed) player.speed = player.maxSpeed;
+
+          updateSpeedDisplay(); 
+        });
+        brakeBtn.addEventListener("click", () => {
+          player.speed -= player.deceleration * 30;
+          if (player.speed < 0.2) player.speed = 0.2;
+
+          updateSpeedDisplay(); 
+        });
+      window.onload = init;
+    </script>
+  </body>
+</html>
