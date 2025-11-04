@@ -46,6 +46,6 @@ Mundo 3D es un juego de acción en primera persona desarrollado completamente co
 
 Iluminación 3D es una demostración interactiva de gráficos por computadora que muestra diferentes figuras geométricas con un sistema de iluminación avanzado. Experimenta con múltiples fuentes de luz, materiales y formas 3D en tiempo real. Pruebalo -> [Link del juego](https://alejandrodavidarzolasaavedra.github.io/webgl/3d_ilumination/)
 
-<div align="center"><img src="img/3d_world.gif" alt="Demo del sistema de Iluminación 3D"> </div>
+<div align="center"><img src="img/3d_ilumination.gif" alt="Demo del sistema de Iluminación 3D"> </div>
 
 
