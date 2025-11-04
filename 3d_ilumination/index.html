@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <!--Se puede abrir en pantalla completa o aquí previsualizada-->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="author" content="Alejandro David Arzola Saavedra">
+    <title>Iluminación en 3D</title>
+    <script type="text/javascript" src="../utils/dat.gui.min.js"></script>
+    <script src="../utils/gl-matrix-min.js"></script>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+
+  <body>
+    <h1 align="center">Iluminación en 3D</h1>
+    <canvas style="width: 58%" width="400" height="400" id="my_Canvas"></canvas>
+    <div class="button-container">
+      <button id="changeShapeButton" class="styled-button"> Cambiar Figura </button>
+      <div class="info-container">
+        <div class="info-content">
+          <p id="shapeDescription" class="shape-description">Figura actual:</p>
+          <p id="shapeInfo" class="shape-info"> Caras: 1, Aristas: 0, Vértices: 0 </p>
+        </div>
+      </div>
+    </div>
+    <!-- Vertex Shader -->
+    <script id="vertex-shader" type="x-shader/x-vertex">
+      #version 300 es
+      precision mediump float;
+
+      in vec3 aCoordinates;
+      in vec3 aVertexNormals;
+
+      uniform mat4 uModelMatrix;
+      uniform mat4 uViewMatrix;
+      uniform vec3 uLightPos;
+
+      out vec3 vNormal;
+      out vec3 vEyeVector;
+      out vec3 vLightDirection;
+
+      void main(void) {
+        vec4 vertex = uModelMatrix * vec4(aCoordinates, 1.0);
+        gl_Position = uViewMatrix * vertex;
+
+        vNormal = mat3(uModelMatrix) * aVertexNormals;
+        vEyeVector = normalize(-vertex.xyz);
+        vec4 light = vec4(10,10,10,1);
+        vLightDirection = light.xyz - vertex.xyz;
+      }
+    </script>
+
+    <script id="fragment-shader" type="x-shader/x-fragment">
+      #version 300 es
+      precision mediump float;
+
+      out vec4 fragColor;
+      uniform vec3 uDifColor;
+
+      in vec4 vVertexColor;
+      in vec3 vNormal;
+      in vec3 vEyeVector;
+
+      uniform vec3 uLightPositions[3]; 
+      uniform vec3 uLightColors[3];    
+      uniform vec3 uAmbientColor;
+
+      void main(void) {
+          vec3 N = normalize(vNormal);
+          vec3 ambient = uAmbientColor * uDifColor;
+          vec4 totalDiffuse = vec4(0.0);
+          vec4 totalSpecular = vec4(0.0);
+
+          for (int i = 0; i < 3; i++) {
+              vec3 L = normalize(uLightPositions[i]); 
+              vec3 diffuseMaterial = uDifColor;
+              float diffuse = max(dot(N, L), 0.0);
+              totalDiffuse += vec4(diffuse * diffuseMaterial * uLightColors[i], 1.0); 
+
+              if (diffuse > 0.0) {
+                  vec3 R = reflect(-L, N);
+                  float shininess = 10.0;
+                  vec3 V = normalize(vEyeVector);
+                  float specular = pow(max(dot(R, V), 0.0), shininess);
+                  totalSpecular += vec4(specular * uLightColors[i].rgb, 1.0); 
+              }
+          }
+          fragColor = totalDiffuse + totalSpecular - vec4(ambient, 1.0);
+          fragColor = min(fragColor, vec4(1.0, 1.0, 1.0, 1.0)); 
+      }
+    </script>
+    <script>
+      const { vec2, vec3, mat3, mat4 } = glMatrix;
+
+      var gl; var canvas;
+      var vertex_buffer; var normal_buffer;
+      var index_buffer; var colorLocation;
+      var modelMatrixLoc; var viewMatrixLoc;
+      var matrixStack = []; var difColorLoc;
+      var rotateX = 0, rotateY = 0;
+      var mouseX, mouseY;
+      var zoomFactor = 1;
+
+      function glPushMatrix() {
+        const matrix = mat4.create();
+        mat4.copy(matrix, modelMatrix);
+        matrixStack.push(matrix);
+      }
+
+      function glPopMatrix() { modelMatrix = matrixStack.pop(); }
+
+      const controls = {
+        difColor: "#ffffff",
+        lights: [
+          { name: "Luz 1", position: { x: 1.0, y: 1.0, z: 1.0 }, color: "#ffFFFf", fixed: false, },
+          { name: "Luz 2", position: { x: -1.0, y: -1.0, z: 1.0 }, color: "#6b5858", fixed: false, },
+          { name: "Luz 3", position: { x: 0.0, y: 1.0, z: 1.0 }, color: "#ffffff", fixed: false, },
+        ],
+      };
+
+      var lightPositions = [ [1.0, 1.0, 1.0], [-1.0, -1.0, 1.0],  [0.0, 1.0, 1.0], ];
+      var lightColors = [ [1.0, 1.0, 1.0], [1.0, 0.0, 0.0], [0.0, 0.0, 1.0],];
+
+      var lightAngles = [0, Math.PI / 2, Math.PI];
+      var lightRadius = 2.0;
+      let currentShape = "Esfera";
+
+      function changeShape() {
+        if (currentShape === "Esfera") { currentShape = "Piramide";
+        } else if (currentShape === "Piramide") { currentShape = "Cilindro";
+        } else if (currentShape === "Cilindro") { currentShape = "Octaedro";
+        } else { currentShape = "Esfera"; }
+
+        document.getElementById("shapeDescription").innerText = `Figura actual: ${currentShape}`;
+
+        let shapeInfoText;
+        if (currentShape === "Esfera") { shapeInfoText = "Caras: 1, Aristas: 0, Vértices: 0";
+        } else if (currentShape === "Piramide") { shapeInfoText = "Caras: 5, Aristas: 8, Vértices: 5";
+        } else if (currentShape === "Cilindro") { shapeInfoText = "Caras: 3, Aristas: 2, Vértices: 0";
+        } else if (currentShape === "Octaedro") { shapeInfoText = "Caras: 8, Aristas: 12, Vértices: 6";}
+        document.getElementById("shapeInfo").innerText = shapeInfoText;
+      }
+
+      document.getElementById("shapeDescription").innerText = `Figura actual: ${currentShape}`;
+
+      document.getElementById("changeShapeButton").addEventListener("click", changeShape);
+
+      const gui = new dat.GUI();
+      gui.addColor(controls, "difColor").name("Material Color").onChange(render);
+
+      controls.lights.forEach((light, index) => {
+        const folder = gui.addFolder(light.name);
+        folder.add(light.position, "x", -5, 5).name("Pos X").onChange(render);
+        folder.add(light.position, "y", -5, 5).name("Pos Y").onChange(render);
+        folder.addColor(light, "color").name("Color") .onChange(() => { lightColors[index] = hexToRgb(light.color); render(); });
+        folder.add(light, "fixed").name("Fija").onChange(render);
+        folder.close();
+      });
+      gui.close();
+
+      var guiContainer = document.querySelector(".dg.main");
+      guiContainer.style.position = "fixed"; guiContainer.style.left = "0";
+
+      var lightPosLocs = [];
+      var lightColorLocs = [];
+
+      function init() {
+        canvas = document.getElementById("my_Canvas");
+        gl = canvas.getContext("webgl2");
+        var vertShader = gl.createShader(gl.VERTEX_SHADER);
+        var script = document.getElementById("vertex-shader");
+        var shaderString = script.text.trim();
+        gl.shaderSource(vertShader, shaderString);
+        gl.compileShader(vertShader);
+        var fragShader = gl.createShader(gl.FRAGMENT_SHADER);
+        if (!gl.getShaderParameter(vertShader, gl.COMPILE_STATUS)) {
+          console.error("vertShader: " + gl.getShaderInfoLog(vertShader));
+          return null; }
+        script = document.getElementById("fragment-shader");
+        shaderString = script.text.trim();
+        gl.shaderSource(fragShader, shaderString);
+        gl.compileShader(fragShader);
+        var shaderProgram = gl.createProgram();
+        gl.attachShader(shaderProgram, vertShader);
+        gl.attachShader(shaderProgram, fragShader);
+        gl.linkProgram(shaderProgram);
+        gl.useProgram(shaderProgram);
+        vertex_buffer = gl.createBuffer();
+        normal_buffer = gl.createBuffer();
+        index_buffer = gl.createBuffer();
+        ground_vertex_buffer = gl.createBuffer();
+        ground_normal_buffer = gl.createBuffer();
+        ground_index_buffer = gl.createBuffer();
+        gl.enable(gl.DEPTH_TEST);
+        gl.bindBuffer(gl.ARRAY_BUFFER, vertex_buffer);
+        var coordLocation = gl.getAttribLocation(shaderProgram, "aCoordinates");
+        var normalsLoc = gl.getAttribLocation(shaderProgram, "aVertexNormals");
+        gl.vertexAttribPointer(coordLocation, 3, gl.FLOAT, false, 0, 0);
+        difColorLoc = gl.getUniformLocation(shaderProgram, "uDifColor");
+        colorLocation = gl.getUniformLocation(shaderProgram, "uColor");
+        modelMatrixLoc = gl.getUniformLocation(shaderProgram, "uModelMatrix");
+        viewMatrixLoc = gl.getUniformLocation(shaderProgram, "uViewMatrix");
+        const uAmbientColorLocation = gl.getUniformLocation(shaderProgram, 'uAmbientColor');
+        gl.uniform3fv(uAmbientColorLocation, [0.2, 0.2, 0.2]);
+        
+        for (let i = 0; i < lightPositions.length; i++) {
+          lightPosLocs.push(
+            gl.getUniformLocation(shaderProgram, "uLightPositions[" + i + "]")
+          );
+          lightColorLocs.push(
+            gl.getUniformLocation(shaderProgram, "uLightColors[" + i + "]")
+          );
+        }
+        controls.lights.forEach((light, index) => {
+          lightPositions[index] = [light.position.x, light.position.y];
+          lightColors[index] = hexToRgb(light.color);
+          gl.uniform3fv(lightPosLocs[index], lightPositions[index]);
+          gl.uniform3fv(lightColorLocs[index], lightColors[index]);
+        });
+
+        gl.enableVertexAttribArray(coordLocation);
+        gl.bindBuffer(gl.ARRAY_BUFFER, normal_buffer);
+        gl.vertexAttribPointer(normalsLoc, 3, gl.FLOAT, false, 0, 0);
+        gl.enableVertexAttribArray(normalsLoc);
+        gl.bindBuffer(gl.ARRAY_BUFFER, null);
+        index_buffer = gl.createBuffer();
+        gl.enable(gl.DEPTH_TEST);
+        updateLightPositions(0);
+        render();
+      }
+
+      function updateLightPositions(time) {
+        controls.lights.forEach((light, index) => {
+          if (!light.fixed) {
+            lightAngles[index] += 0.01;
+            const x = light.position.x;
+            const y = light.position.y; 
+            const z = lightRadius * Math.sin(lightAngles[index]);
+            lightPositions[index] = [x, y, z]; 
+            gl.uniform3fv(lightPosLocs[index], lightPositions[index]);
+            lightColors[index] = hexToRgb(light.color); 
+            gl.uniform3fv(lightColorLocs[index], lightColors[index]);
+          }
+        });
+        requestAnimationFrame(updateLightPositions);
+      }
+      
+      function render(time) {
+        gl.clearColor(0.6, 0.8, 0.9, 1.0);
+        gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+        gl.viewport(0, 0, canvas.width, canvas.height);
+        gl.bindBuffer(gl.ARRAY_BUFFER, vertex_buffer);
+        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, index_buffer);
+        modelMatrix = mat4.create();
+        mat4.identity(modelMatrix);
+        viewMatrix = mat4.create();
+        mat4.perspective(viewMatrix, Math.PI / 4, 1, 1, 30);
+        gl.uniformMatrix4fv(viewMatrixLoc, false, viewMatrix);
+        mat4.lookAt(modelMatrix, [0, 0, 3], [0, 0, 0], [0, 1, 0]);
+        mat4.scale(modelMatrix, modelMatrix, [ zoomFactor, zoomFactor, zoomFactor, ]);
+        mat4.rotateX(modelMatrix, modelMatrix, rotateX);
+        mat4.rotateY(modelMatrix, modelMatrix, rotateY);
+        gl.uniform3fv(difColorLoc, hexToRgb(controls.difColor));
+        if (currentShape === "Esfera") { glRenderSphereIBO(20); 
+        } else if (currentShape === "Piramide") { glRenderPyramidIBO();
+        } else if (currentShape === "Cilindro") { glRenderCylinderIBO();
+        } else if (currentShape === "Octaedro") { glRenderOctahedronIBO();
+        }
+
+        gl.bindBuffer(gl.ARRAY_BUFFER, null);
+        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, null);
+        window.requestAnimationFrame(render);
+      }
+      
+      function hexToRgb(hex) {
+        hex = hex.replace(/^#/, "");
+        const r = parseInt(hex.substring(0, 2), 16) / 255;
+        const g = parseInt(hex.substring(2, 4), 16) / 255;
+        const b = parseInt(hex.substring(4, 6), 16) / 255;
+        return [r, g, b];
+      }
+
+      let angleSphere = 0;
+      function glRenderSphereIBO(n) {
+        glPushMatrix();
+        mat4.scale(modelMatrix, modelMatrix, [0.7, 0.7, 0.7]);
+        mat4.rotateZ(modelMatrix, modelMatrix, angleSphere);
+        gl.uniformMatrix4fv(modelMatrixLoc, false, modelMatrix);
+        coords = new Float32Array(6 * n * n);
+        normals = coords;
+        step = Math.PI / n;
+        R = 1;
+        k = 0;
+        for (i = 1; i < n; i++) {
+          tita = -Math.PI / 2 + i * step;
+          for (j = 0; j < 2 * n; j++) {
+            alpha = j * step;
+            coords[k++] = R * Math.cos(tita) * Math.cos(alpha);
+            coords[k++] = R * Math.cos(tita) * Math.sin(alpha);
+            coords[k++] = R * Math.sin(tita);
+          }
+        }
+        arrayIFaces = new Uint16Array((4 * n + 2) * n);
+        k = 0;
+        for (i = 0; i < n - 2; i++) {
+          for (j = 0; j < 2 * n; j++) {
+            arrayIFaces[k++] = 2 * n * (i + 1) + j;
+            arrayIFaces[k++] = 2 * n * i + j;
+          }
+          arrayIFaces[k++] = 2 * n * (i + 1);
+          arrayIFaces[k++] = 2 * n * i;
+        }
+
+        gl.bindBuffer(gl.ARRAY_BUFFER, vertex_buffer);
+        gl.bufferData(gl.ARRAY_BUFFER, coords, gl.STATIC_DRAW);
+        gl.bindBuffer(gl.ARRAY_BUFFER, normal_buffer);
+        gl.bufferData(gl.ARRAY_BUFFER, normals, gl.STATIC_DRAW);
+        gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, arrayIFaces, gl.STATIC_DRAW);
+
+        for (i = 0; i < n - 2; i++)
+          gl.drawElements( gl.TRIANGLE_STRIP, 4 * n + 2, gl.UNSIGNED_SHORT, 2 * i * (4 * n + 2) ); 
+        glPopMatrix();
+        delete coords;
+        delete arrayIFaces;
+      }
+      
+      function glRenderOctahedronIBO() {
+        glPushMatrix();
+        mat4.scale(modelMatrix, modelMatrix, [0.7, 0.7, 0.7]);
+        mat4.rotateZ(modelMatrix, modelMatrix, angleSphere);
+        gl.uniformMatrix4fv(modelMatrixLoc, false, modelMatrix);
+
+        const coords = new Float32Array([ 1, 0, 0, -1, 0, 0, 0, 1, 0, 0, -1, 0, 0, 0, 1, 0, 0, -1, ]);
+        const normals = new Float32Array([ 1, 0, 0, -1, 0, 0, 0, 1, 0, 0, -1, 0, 0, 0, 1, 0, 0, -1, ]);
+        const indices = new Uint16Array([ 0, 2, 4, 2, 1, 4, 1, 3, 4, 3, 0, 4, 0, 5, 2, 2, 5, 1, 1, 5, 3, 3, 5, 0, ]); 
+        gl.bindBuffer(gl.ARRAY_BUFFER, vertex_buffer);
+        gl.bufferData(gl.ARRAY_BUFFER, coords, gl.STATIC_DRAW);
+        gl.bindBuffer(gl.ARRAY_BUFFER, normal_buffer);
+        gl.bufferData(gl.ARRAY_BUFFER, normals, gl.STATIC_DRAW);
+        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, index_buffer);
+        gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, indices, gl.STATIC_DRAW);
+        gl.drawElements(gl.TRIANGLES, indices.length, gl.UNSIGNED_SHORT, 0);
+        glPopMatrix();
+      }
+      
+      function glRenderPyramidIBO() {
+        glPushMatrix();
+        mat4.scale(modelMatrix, modelMatrix, [1.7, 1.7, 1.7]);
+        gl.uniformMatrix4fv(modelMatrixLoc, false, modelMatrix);
+        const coords = new Float32Array([ -0.5, -0.5, -0.5, 0.5, -0.5, -0.5, 0.5, -0.5, 0.5, -0.5, -0.5, 0.5, 0, 0.5, 0, ]);
+        const normals = new Float32Array([ 0, 1, 0, 0, 1, 0, 1, 1, 0, 1, 1, 0, 0, 0.707, -0.707, 0.707, 0.707, 0, 0, 0.707, 0.707, -0.707, 0.707, 0, ]);
+
+        const arrayIFaces = new Uint16Array([ 0, 1, 2, 0, 2, 3, 0, 1, 4, 1, 2, 4, 2, 3, 4, 3, 0, 4,]);
+        gl.bindBuffer(gl.ARRAY_BUFFER, vertex_buffer);
+        gl.bufferData(gl.ARRAY_BUFFER, coords, gl.STATIC_DRAW);
+        gl.bindBuffer(gl.ARRAY_BUFFER, normal_buffer);
+        gl.bufferData(gl.ARRAY_BUFFER, normals, gl.STATIC_DRAW);
+        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, index_buffer);
+        gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, arrayIFaces, gl.STATIC_DRAW);
+        gl.drawElements(gl.TRIANGLES, arrayIFaces.length, gl.UNSIGNED_SHORT, 0);
+        glPopMatrix();
+        delete coords;
+        delete arrayIFaces;
+      }
+
+      function glRenderCylinderIBO() {
+        glPushMatrix();
+        mat4.scale(modelMatrix, modelMatrix, [0.7, 0.7, 0.7]);
+        mat4.translate(modelMatrix, modelMatrix, [0, -0.8, 0]);
+        gl.uniformMatrix4fv(modelMatrixLoc, false, modelMatrix);
+
+        const numSegments = 36;
+        const angleStep = (2 * Math.PI) / numSegments;
+        const coords = [];
+        const normals = [];
+        const indices = [];
+
+        for (let i = 0; i <= numSegments; i++) {
+          const angle = i * angleStep;
+          const x = Math.cos(angle);
+          const z = Math.sin(angle);
+          coords.push(x, 0, z);
+          normals.push(0, -1, 0);
+          coords.push(x, 1, z);
+          normals.push(0, 1, 0);
+        }
+
+        for (let i = 0; i <= numSegments; i++) {
+          const angle = i * angleStep;
+          const x = Math.cos(angle);
+          const z = Math.sin(angle);
+          coords.push(x, 0, z);
+          normals.push(x, 0, z);
+          coords.push(x, 1, z);
+          normals.push(x, 0, z);
+        }
+
+        for (let i = 0; i < numSegments; i++) {
+          const bottom1 = i * 2;
+          const bottom2 = (i + 1) * 2;
+          const top1 = i * 2 + 1;
+          const top2 = (i + 1) * 2 + 1;
+
+          indices.push(bottom1, bottom2, numSegments * 2);
+          indices.push(top1, top2, numSegments * 2 + 1);
+        }
+
+        for (let i = 0; i < numSegments; i++) {
+          const bottom1 = numSegments * 2 + 2 + i * 2;
+          const bottom2 = numSegments * 2 + 2 + (i + 1) * 2;
+          const top1 = numSegments * 2 + 2 + i * 2 + 1;
+          const top2 = numSegments * 2 + 2 + (i + 1) * 2 + 1;
+
+          indices.push(bottom1, bottom2, top1);
+          indices.push(top1, bottom2, top2);
+        }
+
+        gl.bindBuffer(gl.ARRAY_BUFFER, vertex_buffer);
+        gl.bufferData( gl.ARRAY_BUFFER, new Float32Array(coords), gl.STATIC_DRAW );         gl.bindBuffer(gl.ARRAY_BUFFER, normal_buffer);
+        gl.bufferData( gl.ARRAY_BUFFER, new Float32Array(normals), gl.STATIC_DRAW );
+        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, index_buffer);
+        gl.bufferData( gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(indices), gl.STATIC_DRAW );
+        gl.drawElements(gl.TRIANGLES, indices.length, gl.UNSIGNED_SHORT, 0);
+        glPopMatrix();
+      }
+
+      window.onload = init; document.onwheel = zoom;
+      document.onmousemove = onMouseMove; document.onmousedown = onMouseDown;
+
+      function onMouseDown(e) {
+        if (e.buttons == 1 && e.srcElement == canvas) { mouseX = e.pageX; mouseY = e.pageY; } }
+
+      function onMouseMove(e) {
+        if (e.buttons == 1 && e.srcElement == canvas) {
+          rotateY = rotateY + (e.pageX - mouseX) * 0.01;
+          rotateX = rotateX + (e.pageY - mouseY) * 0.01;
+          mouseX = e.pageX; mouseY = e.pageY;
+        }
+      }
+
+      function zoom(e) { if (e.deltaY < 0) zoomFactor *= 1.1; else zoomFactor *= 0.9;}
+    </script>
+  </body>
+</html>
