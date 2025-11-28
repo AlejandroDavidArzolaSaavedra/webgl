@@ -1,0 +1,1237 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link
+      rel="stylesheet"
+      type="text/css"
+      href="https://api.tomtom.com/maps-sdk-for-web/cdn/6.x/6.25.0/maps/maps.css"
+    />
+    <link
+      rel="icon"
+      type="image/png"
+      href="../img/2739576.png"
+    />
+    <script src="https://api.tomtom.com/maps-sdk-for-web/cdn/6.x/6.25.0/maps/maps-web.min.js"></script>
+
+    <title>La Tierra</title>
+    <style>
+      body {
+        margin: 0;
+        font-family: "Arial", sans-serif;
+        background-image: url("//unpkg.com/three-globe/example/img/night-sky.png");
+        background-size: cover;
+        background-position: center;
+        background-repeat: no-repeat;
+        color: #ffffff;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+      }
+
+      h1 {
+        font-size: 2.5rem;
+        margin: 0;
+        text-align: center;
+        text-transform: uppercase;
+        letter-spacing: 2px;
+        color: #00ffdd;
+        text-shadow: 0 0 8px #00aaff, 0 0 20px #0077cc;
+        margin: 20px;
+      }
+
+      #globeViz {
+        width: 100%;
+        height: 100vh;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        animation: fadeIn 2s ease-in-out;
+      }
+
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+          transform: scale(0.8);
+        }
+        to {
+          opacity: 1;
+          transform: scale(1);
+        }
+      }
+
+      #nav {
+        position: fixed;
+        bottom: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+        display: flex;
+        gap: 30px;
+        z-index: 1000;
+      }
+      .label {
+        font-family: Arial, sans-serif;
+        font-size: 14px;
+        background-color: rgba(0, 0, 0, 0.8);
+        color: white;
+        z-index: 30;
+        padding: 8px;
+        border-radius: 5px;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.5);
+        max-width: 200px;
+      }
+      .label b {
+        color: #ffd700;
+      }
+      .label i {
+        color: #87ceeb;
+      }
+
+      #info-planet {
+        position: absolute;
+        bottom: 150px;
+        left: 0px;
+        width: 25rem;
+        margin: 20px;
+        z-index: 1000;
+        font-family: "Orbitron", sans-serif;
+        font-size: 18px;
+        color: #cfd8dc;
+        background: linear-gradient(
+          135deg,
+          rgba(40, 40, 60, 0.95),
+          rgba(0, 0, 0, 0.95)
+        );
+        padding: 10px 20px;
+        border-radius: 15px;
+        letter-spacing: 1px;
+        transform-origin: center center;
+        animation: bounce 1.5s infinite alternate;
+      }
+
+      @keyframes bounce {
+        0% {
+          transform: translateY(0);
+        }
+        100% {
+          transform: translateY(-10px);
+        }
+      }
+
+      #info-planet {
+        opacity: 0;
+        transform: translateX(-100%);
+        animation: slideIn 3s forwards;
+      }
+
+      @keyframes slideIn {
+        0% {
+          opacity: 0;
+          transform: translateX(-100%);
+        }
+        100% {
+          opacity: 1;
+          transform: translateX(0);
+        }
+      }
+
+      #navMoon {
+        position: fixed;
+        top: 20px;
+        left: 50px;
+        display: flex;
+        gap: 30px;
+        z-index: 1000;
+      }
+
+      #navExit {
+        position: fixed;
+        top: 20px;
+        right: 50px;
+        display: flex;
+        gap: 30px;
+        z-index: 1000;
+      }
+
+      #title {
+        position: fixed;
+        top: 20px;
+        display: flex;
+        gap: 30px;
+        z-index: 1000;
+      }
+
+      #world-cities {
+        position: absolute;
+        top: 100px;
+        display: none;
+        flex-direction: column;
+        right: 20px;
+        gap: 30px;
+        z-index: 1000;
+      }
+
+      .legend {
+        position: absolute;
+        top: 100px;
+        right: 20px;
+        background: linear-gradient(
+          135deg,
+          rgba(40, 40, 60, 0.95),
+          rgba(0, 0, 0, 0.95)
+        );
+        color: #cfd8dc;
+        padding: 10px;
+        border-radius: 8px;
+        font-size: 0.9rem;
+      }
+
+      .legend-item {
+        display: flex;
+        align-items: center;
+        margin-bottom: 5px;
+      }
+
+      .legend-color {
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+        margin-right: 10px;
+      }
+
+      .legend-item:last-child {
+        margin-bottom: 0;
+      }
+
+      .floating-button {
+        font-family: "Orbitron", sans-serif;
+        font-size: 18px;
+        background: linear-gradient(
+          135deg,
+          rgba(40, 40, 60, 0.95),
+          rgba(0, 0, 0, 0.95)
+        );
+        padding: 10px 20px;
+        border-radius: 15px;
+        color: #cfd8dc;
+
+        border: 2px solid transparent;
+        border-radius: 10px;
+        padding: 12px 22px;
+        font-weight: bold;
+        cursor: pointer;
+        position: relative;
+        text-shadow: 0 2px 6px rgba(255, 255, 255, 0.5);
+        transition: all 0.3s ease-in-out;
+      }
+
+      .floating-button::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        border-radius: 50px;
+        opacity: 0;
+        transition: opacity 0.3s ease;
+      }
+
+      .floating-button:hover {
+        transform: translateY(-8px) scale(1.05);
+      }
+
+      .floating-button:hover::before {
+        opacity: 1;
+      }
+
+      .floating-button:active {
+        transform: scale(0.98);
+      }
+
+      @media (max-width: 768px) {
+        #nav {
+          flex-direction: column;
+          bottom: 15px;
+          gap: 25px;
+        }
+
+        .floating-button {
+          font-size: 1rem;
+          padding: 12px 24px;
+        }
+      }
+
+      @media (max-width: 480px) {
+        .floating-button {
+          font-size: 0.9rem;
+          padding: 10px 20px;
+        }
+      }
+
+      #radio-container {
+        position: fixed;
+        right: 20px;
+        top: 50%;
+        color: #cfd8dc;
+        background: linear-gradient(
+          135deg,
+          rgba(40, 40, 60, 0.95),
+          rgba(0, 0, 0, 0.95)
+        );
+        padding: 10px 10px;
+        border-radius: 15px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        cursor: pointer;
+        transition: all 0.3s ease-in-out;
+        z-index: 1000;
+      }
+
+      #radio-container:hover {
+        transform: scale(1.1);
+      }
+
+      #radio-container i {
+        font-size: 1.5rem;
+        color: #cfd8dc;
+      }
+
+      #radio-player {
+        display: none;
+      }
+
+      #play-button {
+        font-size: 1.5rem;
+        color: #cfd8dc;
+        cursor: pointer;
+      }
+
+      #map {
+        width: 20%;
+        margin: 20px;
+        height: 32vh;
+        position: absolute;
+        bottom: 0;
+        right: 0;
+      }
+
+      #resetView {
+        position: absolute;
+        bottom: 30px;
+        margin: 20px;
+        right: 10px;
+        z-index: 1;
+        padding: 15px;
+        background-color: #ffffff;
+        color: #1a1a1a;
+        border: none;
+        border-radius: 50%;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+        font-size: 18px;
+        cursor: pointer;
+        transition: all 0.3s ease-in-out;
+      }
+
+      #resetView:hover {
+        transform: scale(1.1);
+        color: #121212;
+      }
+
+      #resetView:focus {
+        outline: none;
+      }
+    </style>
+    <script src="//unpkg.com/globe.gl"></script>
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css"
+    />
+  </head>
+
+  <body>
+    <div id="title">
+      <h1 id="title-name">.</h1>
+    </div>
+    <div id="globeViz"></div>
+
+    <div id="navMoon">
+      <button class="floating-button" id="btn-ir-luna">
+        <i class="fa-solid fa-rocket"></i> Luna
+      </button>
+    </div>
+
+    <div id="navExit">
+      <button class="floating-button" id="btn-volver-sistema-solar">
+        <i class="fa-solid fa-arrow-rotate-left"></i> Volver
+      </button>
+    </div>
+
+    <button id="resetView" aria-label="Reset View">
+      <i class="fa-solid fa-eye"></i>
+    </button>
+
+    <div id="nav">
+      <button class="floating-button" id="btn-tierra">
+        <i class="fa-solid fa-earth-americas"></i> Tierra
+      </button>
+      <button class="floating-button" id="btn-ciudades">
+        <i class="fa-solid fa-city"></i> Lugares
+      </button>
+      <button class="floating-button" id="btn-pib">
+        <i class="fa-solid fa-money-bill"></i> Pib
+      </button>
+      <button class="floating-button" id="btn-poblacion">
+        <i class="fa-solid fa-globe"></i> Países
+      </button>
+    </div>
+
+    <div id="info-planet"></div>
+
+    <div id="radio-container" style="text-align: center">
+      <i id="play-button">Reproducir Música</i>
+    </div>
+
+    <div id="map"></div>
+
+    <audio id="radio-player">
+      <source
+        src="../img/song.mp3"
+        type="audio/mp3"
+      />
+      Tu navegador no soporta el formato de audio.
+    </audio>
+
+    <div id="world-cities" class="legend">
+      <div class="legend-item">
+        <div
+          class="legend-color"
+          style="background-color: rgba(255, 69, 0, 0.85)"
+        ></div>
+        <span>Población > 5M</span>
+      </div>
+      <div class="legend-item">
+        <div
+          class="legend-color"
+          style="background-color: rgba(255, 165, 0, 0.85)"
+        ></div>
+        <span>Población > 1M</span>
+      </div>
+      <div class="legend-item">
+        <div
+          class="legend-color"
+          style="background-color: rgba(50, 205, 50, 0.85)"
+        ></div>
+        <span>Población ≤ 1M</span>
+      </div>
+    </div>
+
+    <script type="module">
+      import * as THREE from "https://esm.sh/three";
+      import { scaleSequentialSqrt } from "https://esm.sh/d3-scale";
+      import {
+        interpolateCool,
+        schemeCategory10,
+      } from "https://esm.sh/d3-scale-chromatic";
+      import { scaleOrdinal } from "https://esm.sh/d3-scale";
+      import { transparentize } from "https://esm.sh/polished";
+
+      document.addEventListener("DOMContentLoaded", async function () {
+        let world;
+        const res = await fetch("../datasets/countries.geojson");
+        const countries = await res.json();
+        const infoPlanet = document.getElementById("info-planet");
+
+        const playButton = document.getElementById("play-button");
+        const radioPlayer = document.getElementById("radio-player");
+        if (!localStorage.getItem("luna")) {
+          localStorage.setItem("luna", "false");
+        }
+
+        const isLunaTrue = localStorage.getItem("luna") === "true";
+        console.log(isLunaTrue);
+
+        playButton.addEventListener("click", () => {
+          if (radioPlayer.paused) {
+            radioPlayer.play();
+            playButton.innerHTML = '<i class="fa-solid fa-pause"></i>';
+          } else {
+            radioPlayer.pause();
+            playButton.innerHTML = '<i class="fa-solid fa-headphones"></i>';
+          }
+        });
+
+        function planetaTierra() {
+          const ARC_REL_LEN = 0.4;
+          const FLIGHT_TIME = 1000;
+          const NUM_RINGS = 3;
+          const RINGS_MAX_R = 5;
+          const RING_PROPAGATION_SPEED = 5;
+          hiddenInformationCities();
+          document.getElementById("title-name").innerText = "Planeta Tierra";
+          function changeToVolcanInfo() {
+            infoPlanet.innerHTML = `
+            <h2 style="text-align: center;">Información del planeta</h2>
+            <p>La Tierra ocupa el tercer lugar en el sistema solar en cuanto a distancia desde el Sol, y es el quinto planeta en términos de tamaño.</p>
+            <p><strong>Composición:</strong></p>
+            <ul>
+              <li>Hierro: 32,1%</li>
+              <li>Oxígeno: 30,1%</li>
+              <li>Silicio: 15,1%</li>
+              <li>Magnesio: 13,9%</li>
+            </ul>
+          `;
+          }
+          changeToVolcanInfo();
+          const flights = [
+            {
+              startLat: 40.7128,
+              startLng: -74.006,
+              endLat: 34.0522,
+              endLng: -118.2437,
+            },
+            {
+              startLat: 51.5074,
+              startLng: -0.1278,
+              endLat: 35.6895,
+              endLng: 139.6917,
+            },
+            {
+              startLat: 48.8566,
+              startLng: 2.3522,
+              endLat: 40.7128,
+              endLng: -74.006,
+            },
+            {
+              startLat: -33.8688,
+              startLng: 151.2093,
+              endLat: 1.3521,
+              endLng: 103.8198,
+            },
+            {
+              startLat: 55.7558,
+              startLng: 37.6173,
+              endLat: 39.9042,
+              endLng: 116.4074,
+            },
+          ];
+
+          world = new Globe(document.getElementById("globeViz"))
+            .arcsData(flights)
+            .globeImageUrl(
+              "//unpkg.com/three-globe/example/img/earth-blue-marble.jpg"
+            )
+            .bumpImageUrl(
+              "//unpkg.com/three-globe/example/img/earth-topology.png"
+            )
+            .backgroundImageUrl(
+              "//unpkg.com/three-globe/example/img/night-sky.png"
+            )
+            .arcColor(() => "darkOrange")
+            .onGlobeClick(emitArc)
+            .arcDashLength(ARC_REL_LEN)
+            .arcDashGap(2)
+            .arcDashInitialGap(1)
+            .arcDashAnimateTime(FLIGHT_TIME)
+            .arcsTransitionDuration(0)
+            .ringColor(() => (t) => `rgba(255,100,50,${1 - t})`)
+            .ringMaxRadius(RINGS_MAX_R)
+            .ringPropagationSpeed(RING_PROPAGATION_SPEED)
+            .ringRepeatPeriod((FLIGHT_TIME * ARC_REL_LEN) / NUM_RINGS);
+          world.controls().autoRotate = true;
+          world.controls().autoRotateSpeed = 0.2;
+          world.controls().enableZoom = true;
+          let prevCoords = { lat: 0, lng: 0 };
+          function emitArc({ lat: endLat, lng: endLng }) {
+            const { lat: startLat, lng: startLng } = prevCoords;
+            setTimeout(() => {
+              prevCoords = { lat: endLat, lng: endLng };
+            }, FLIGHT_TIME);
+
+            const arc = { startLat, startLng, endLat, endLng };
+            world.arcsData([...world.arcsData(), arc]);
+            setTimeout(
+              () => world.arcsData(world.arcsData().filter((d) => d !== arc)),
+              FLIGHT_TIME * 2
+            );
+
+            const srcRing = { lat: startLat, lng: startLng };
+            world.ringsData([...world.ringsData(), srcRing]);
+            setTimeout(
+              () =>
+                world.ringsData(world.ringsData().filter((r) => r !== srcRing)),
+              FLIGHT_TIME * ARC_REL_LEN
+            );
+
+            setTimeout(() => {
+              const targetRing = { lat: endLat, lng: endLng };
+              world.ringsData([...world.ringsData(), targetRing]);
+              setTimeout(
+                () =>
+                  world.ringsData(
+                    world.ringsData().filter((r) => r !== targetRing)
+                  ),
+                FLIGHT_TIME * ARC_REL_LEN
+              );
+            }, FLIGHT_TIME);
+          }
+          const CLOUDS_IMG_URL =
+            "../img/clouds.png";
+          const CLOUDS_ALT = 0.005;
+          const CLOUDS_ROTATION_SPEED = -0.004;
+          new THREE.TextureLoader().load(CLOUDS_IMG_URL, (cloudsTexture) => {
+            const clouds = new THREE.Mesh(
+              new THREE.SphereGeometry(100 * (1.0 + CLOUDS_ALT), 75, 75),
+              new THREE.MeshPhongMaterial({
+                map: cloudsTexture,
+                transparent: true,
+                depthWrite: false,
+              })
+            );
+            world.scene().add(clouds);
+
+            (function rotateClouds() {
+              clouds.rotation.y += (CLOUDS_ROTATION_SPEED * Math.PI) / 180;
+              requestAnimationFrame(rotateClouds);
+            })();
+          });
+        }
+
+        function planetaLuna() {
+          const colorScale = scaleOrdinal([
+            "orangered",
+            "mediumblue",
+            "darkgreen",
+            "yellow",
+          ]);
+          const labelsTopOrientation = new Set([
+            "Apollo 12",
+            "Luna 2",
+            "Luna 20",
+            "Luna 21",
+            "Luna 24",
+            "LCROSS Probe",
+          ]);
+          document.getElementById("title-name").innerText = "La Luna";
+          function changeToVolcanInfo() {
+            infoPlanet.innerHTML = `
+            <h2 style="text-align: center;">Información sobre la Luna</h2>
+            <p>La Luna es el único satélite natural de la Tierra y el quinto satélite más grande del sistema solar. Se encuentra a una distancia promedio de 384.000 km de la Tierra.</p>
+            <p><strong>Composición:</strong></p>
+            <ul>
+              <li>Oxígeno: 40%</li>
+              <li>Silicio: 21%</li>
+              <li>Magnesio: 13%</li>
+            </ul>
+          `;
+          }
+          changeToVolcanInfo();
+
+          const N = 10;
+          const arcsData = [...Array(N).keys()].map(() => ({
+            startLat: (Math.random() - 0.5) * 180,
+            startLng: (Math.random() - 0.5) * 360,
+            endLat: (Math.random() - 0.5) * 180,
+            endLng: (Math.random() - 0.5) * 360,
+            color: [
+              ["red", "white", "blue", "green"][Math.round(Math.random() * 3)],
+              ["red", "white", "blue", "green"][Math.round(Math.random() * 3)],
+            ],
+          }));
+
+          const world = new Globe(document.getElementById("globeViz"))
+            .globeImageUrl(
+              "../img/lunar_surface.jpg"
+            )
+            .bumpImageUrl(
+              "../img/lunar_bumpmap.jpg"
+            )
+            .backgroundImageUrl(
+              "//unpkg.com/three-globe/example/img/night-sky.png"
+            )
+            .showAtmosphere(false)
+            .labelText("label")
+            .labelSize(1.7)
+            .labelDotRadius(0.4)
+            .labelDotOrientation((d) =>
+              labelsTopOrientation.has(d.label) ? "top" : "bottom"
+            )
+            .labelColor((d) => colorScale(d.agency))
+            .labelLabel(
+              (d) => `
+                <div style="z-index:200; margin-bottom:200px;" class="label">
+                  <b>${d.label}</b>
+                  <div><i>${d.agency}</i> - Programa ${d.program}</div>
+                  <div><b>Fecha de aterrizaje:</b> ${new Date(
+                    d.landing_date
+                  ).toLocaleDateString()}</div>
+                  <div><b>Duración:</b> ${d.duration_days} días</div>
+                  <div><b>Objetivo:</b> ${d.primary_objective}</div>
+                  <div><b>Astronautas:</b> ${d.astronauts?.join(", ") || "N/A"}</div>
+                  <div><b>Sitio:</b> ${d.landing_site_description}</div>
+                </div>
+  `
+            );
+
+          world
+            .arcsData(arcsData)
+            .arcColor("color")
+            .arcDashLength(() => Math.random())
+            .arcDashGap(() => Math.random())
+            .arcDashAnimateTime(() => Math.random() * 4000 + 500);
+
+          fetch("../datasets/moon.json")
+            .then((r) => r.json())
+            .then((landingSites) => {
+              world.labelsData(landingSites);
+            });
+
+          world.controls().autoRotate = true;
+          world.controls().autoRotateSpeed = 0.2;
+          world.controls().enableZoom = true;
+
+          const scene = world.scene();
+          const moonLight = new THREE.DirectionalLight(0x33333, 0.2);
+          moonLight.position.set(1, 1, 1).normalize();
+          scene.add(moonLight);
+
+          const globeMaterial = world.globeMaterial();
+          globeMaterial.map = new THREE.TextureLoader().load(
+            "../img/lunar_surface.jpg"
+          );
+          globeMaterial.bumpMap = new THREE.TextureLoader().load(
+            "../img/lunar_bumpmap.jpg"
+          );
+          globeMaterial.bumpScale = 0.25;
+          globeMaterial.shininess = 0.2;
+          globeMaterial.transparent = true;
+          globeMaterial.needsUpdate = true;
+          const markerSvg = `<svg style="z-index:10;" viewBox="-4 0 36 36">
+            <path fill="currentColor" d="M14,0 C21.732,0 28,5.641 28,12.6 C28,23.963 14,36 14,36 C14,36 0,24.064 0,12.6 C0,5.641 6.268,0 14,0 Z"></path>
+            <circle fill="black" cx="14" cy="14" r="7"></circle>
+          </svg>`;
+
+          fetch("../datasets/moon.json")
+            .then((r) => r.json())
+            .then((landingSites) => {
+              world.htmlElementsData(landingSites).htmlElement((d) => {
+                const el = document.createElement("div");
+                el.innerHTML = markerSvg;
+                el.style.color = colorScale(d.agency);
+                el.style.width = "20px";
+                el.style["pointer-events"] = "auto";
+                el.style.cursor = "pointer";
+                el.style.zIndex = 10;
+                el.onclick = () => console.info(d);
+                return el;
+              });
+            });
+        }
+
+        if (isLunaTrue) {
+          planetaLuna();
+        } else {
+          planetaTierra();
+        }
+
+        function hiddenInformationCities() {
+          document.getElementById("world-cities").style.display = "none";
+        }
+
+        document
+          .getElementById("btn-tierra")
+          .addEventListener("click", function () {
+            planetaTierra();
+            hiddenInformationCities();
+          });
+
+        document
+          .getElementById("btn-volver-sistema-solar")
+          .addEventListener("click", function () {
+            location.href = "../index.html";
+          });
+
+        document
+          .getElementById("btn-ciudades")
+          .addEventListener("click", function () {
+            document.getElementById("world-cities").style.display = "flex";
+            const geoJsonUrl =
+              "../datasets/populated_places.geojson";
+            document.getElementById("title-name").innerText =
+              "Población de lugares famosos";
+
+            function changeToVolcanInfo() {
+              infoPlanet.innerHTML = `
+            <h2 style="text-align: center;">Información sobre la Población de lugares famosos</h2>
+            <p>La población de una ciudad se refiere al número total de personas que viven en esa área geográfica específica. Es un indicador importante para evaluar el tamaño, la densidad y el crecimiento de una ciudad.</p>
+
+            <p><strong>Factores que Influyen:</strong></p>
+            <ul>
+              <li><strong>Migración</strong></li>
+              <li><strong>Natalidad</strong></li>
+              <li><strong>Expectativa de vida</strong></li>
+            </ul>
+            `;
+            }
+            changeToVolcanInfo();
+
+            fetch("../datasets/populated_places.geojson")
+              .then((response) => {
+                if (!response.ok) throw new Error("Error al cargar los datos");
+                return response.json();
+              })
+              .then((places) => {
+                const validPlaces = places.features.filter(
+                  (place) =>
+                    Array.isArray(place.geometry.coordinates) &&
+                    !isNaN(place.geometry.coordinates[0]) &&
+                    !isNaN(place.geometry.coordinates[1])
+                );
+
+                const world = new Globe(document.getElementById("globeViz"))
+                  .globeImageUrl(
+                    "https://unpkg.com/three-globe/example/img/earth-night.jpg"
+                  )
+                  .backgroundImageUrl(
+                    "//unpkg.com/three-globe/example/img/night-sky.png"
+                  )
+                  .labelsData(validPlaces)
+                  .labelLat((d) => d.geometry.coordinates[1])
+                  .labelLng((d) => d.geometry.coordinates[0])
+                  .labelText((d) =>
+                    decodeUTF8(`${d.properties.NAME}, ${d.properties.ADM0NAME}`)
+                  )
+                  .labelSize((d) => getLabelSize(d.properties.POP_MAX))
+                  .labelDotRadius((d) => getDotRadius(d.properties.POP_MAX))
+                  .labelAltitude((d) => getAltitude(d.properties.POP_MAX))
+                  .labelColor((d) =>
+                    getDynamicColor(
+                      d.properties.POP_MAX,
+                      d.properties.FEATURECLA
+                    )
+                  )
+                  .labelResolution(2)
+                  .labelTooltip((d) => getTooltip(d.properties))
+                  .labelDotOrientation(() => "bottom")
+                  .labelTransitionDuration(2000)
+                  .onLabelHover((d) => {
+                    if (d) {
+                      console.log(
+                        `Hovered over: ${decodeUTF8(d.properties.NAME)}`
+                      );
+                      highlightRegion(d);
+                    }
+                  })
+                  .onLabelClick((d) => {
+                    if (d) alert(getTooltip(d.properties));
+                  })
+                  .onLabelOut(() => {
+                    resetHighlight();
+                  });
+
+                function highlightRegion(d) {
+                  console.log("Resaltando región: " + d.properties.ADM0NAME);
+                }
+
+                function resetHighlight() {
+                  console.log("Restableciendo resaltado");
+                }
+              })
+              .catch((error) =>
+                console.error("Error cargando el globo:", error)
+              );
+
+            function getDynamicColor(population, type) {
+              if (type.includes("capital")) return "rgba(255, 215, 0, 0.9)";
+              if (population > 5e6) return "rgba(255, 0, 0, 0.85)";
+              if (population > 1e6) return "rgba(255, 140, 0, 0.85)";
+              return "rgba(34, 139, 34, 0.85)";
+            }
+
+            function getLabelSize(population) {
+              return Math.sqrt(population) * 3e-4 || 1;
+            }
+
+            function getDotRadius(population) {
+              return Math.sqrt(population) * 2e-4 || 0.5;
+            }
+
+            function getAltitude(population) {
+              return Math.sqrt(population) * 1e-5 || 0.02;
+            }
+
+            function getTooltip(properties) {
+              return decodeUTF8(`
+                <strong>${properties.NAME}</strong><br>
+                País: ${properties.ADM0NAME}<br>
+                Tipo: ${properties.FEATURECLA}<br>
+                Población: ${formatNumber(properties.POP_MAX)}<br>
+                Área: ${properties.AREA} km²
+              `);
+            }
+
+            function formatNumber(num) {
+              return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+            }
+
+            function decodeUTF8(str) {
+              try {
+                return decodeURIComponent(escape(str));
+              } catch (e) {
+                return str;
+              }
+            }
+          });
+
+        document
+          .getElementById("btn-ir-luna")
+          .addEventListener("click", function () {
+            planetaLuna();
+          });
+
+        document
+          .getElementById("btn-pib")
+          .addEventListener("click", function () {
+            hiddenInformationCities();
+            document.getElementById("title-name").innerText =
+              "PIB Planeta Tierra";
+
+            function changeToVolcanInfo() {
+              infoPlanet.innerHTML = `
+            <h2 style="text-align: center;">Información sobre el Producto Interno Bruto</h2>
+            <p>El Producto Interno Bruto (PIB) es una medida económica que refleja el valor total de todos los bienes y servicios finales producidos en un país durante un periodo determinado.</p>
+
+            <p><strong>Componentes del PIB:</strong></p>
+            <ul>
+              <li><strong>Consumo (C)</strong></li>
+              <li><strong>Inversión (I)</strong></li>
+              <li><strong>Gasto público (G)</strong></li>
+              <li><strong>Exportaciones netas (NX)</strong></li>
+            </ul>
+          `;
+            }
+            changeToVolcanInfo();
+
+            const colorScale = scaleSequentialSqrt(interpolateCool);
+            let autoRotate = true;
+            const getVal = (feat) =>
+              feat.properties.GDP_MD_EST /
+              Math.max(1e5, feat.properties.POP_EST);
+            const maxVal = Math.max(...countries.features.map(getVal));
+            colorScale.domain([0, maxVal]);
+
+            world = new Globe(document.getElementById("globeViz"))
+              .globeImageUrl(
+                "//unpkg.com/three-globe/example/img/earth-blue-marble.jpg"
+              )
+              .backgroundImageUrl(
+                "//unpkg.com/three-globe/example/img/night-sky.png"
+              )
+              .polygonsData(
+                countries.features.filter((d) => d.properties.ISO_A2 !== "AQ")
+              )
+              .polygonAltitude(0.06)
+              .polygonCapColor((feat) => colorScale(getVal(feat)))
+              .polygonSideColor(() => "rgba(0, 0, 50, 0.2)")
+              .polygonStrokeColor(() => "#444")
+              .polygonLabel(
+                ({ properties: d }) => `
+                <b>${d.ADMIN} (${d.ISO_A2}):</b><br/>
+                PIB: <i>${d.GDP_MD_EST.toLocaleString()} millones €</i><br/>
+                Población: <i>${d.POP_EST.toLocaleString()}</i>
+                `
+              )
+              .onPolygonHover((hoverD) => {
+                world
+                  .polygonAltitude((d) => (d === hoverD ? 0.12 : 0.06))
+                  .polygonCapColor((d) =>
+                    d === hoverD ? "#ff7b00" : colorScale(getVal(d))
+                  );
+              })
+              .showAtmosphere(true)
+              .atmosphereColor("rgba(0, 150, 255, 0.6)")
+              .atmosphereAltitude(0.25)
+              .polygonsTransitionDuration(500);
+
+            world.controls().autoRotate = true;
+            world.controls().autoRotateSpeed = 0.2;
+            world.controls().enableZoom = true;
+            world.pointOfView({ altitude: 2.5 }, 2000);
+          });
+
+        document
+          .getElementById("btn-poblacion")
+          .addEventListener("click", function () {
+            hiddenInformationCities();
+            document.getElementById("title-name").innerText =
+              "Población de los paises";
+            function changeToVolcanInfo() {
+              infoPlanet.innerHTML = `
+              <h2 style="text-align: center;">Información sobre la Población de los Paises</h2>
+              <p>La población de un país se refiere al número total de personas que residen en dicho país. Este indicador es fundamental para evaluar su tamaño, diversidad, desarrollo económico y social.</p>
+
+              <p><strong>Desafíos del Crecimiento Poblacional:</strong></p>
+              <ul>
+                <li><strong>Escasez de recursos</strong></li>
+                <li><strong>Desigualdad económica y social</strong></li>
+                <li><strong>Infraestructura insuficiente</strong></li>
+                <li><strong>Envejecimiento de la población</strong></li>
+              </ul>
+              `;
+            }
+            changeToVolcanInfo();
+
+            world = new Globe(document.getElementById("globeViz"))
+              .globeImageUrl(
+                "//unpkg.com/three-globe/example/img/earth-dark.jpg"
+              )
+              .bumpImageUrl(
+                "//unpkg.com/three-globe/example/img/earth-topology.png"
+              )
+              .backgroundImageUrl(
+                "//unpkg.com/three-globe/example/img/night-sky.png"
+              )
+              .pointOfView({ altitude: 4 }, 5000)
+              .polygonCapColor((feat) => "rgba(255, 69, 0, 0.8)")
+              .polygonSideColor(() => "rgba(34, 139, 34, 0.1)")
+              .polygonLabel(
+                ({ properties: d }) => `
+              <b style="color: #FFFAF0">${d.ADMIN} (${d.ISO_A2})</b><br />
+              <i>Población: ${Math.round(+d.POP_EST / 1e4) / 1e2}M</i>
+            `
+              );
+
+            world.controls().autoRotate = true;
+            world.controls().autoRotateSpeed = 0.2;
+            world.controls().enableZoom = true;
+
+            fetch("../datasets/countries.geojson")
+              .then((res) => res.json())
+              .then((countries) => {
+                world.polygonsData(
+                  countries.features.filter((d) => d.properties.ISO_A2 !== "AQ")
+                );
+                setTimeout(
+                  () =>
+                    world
+                      .polygonsTransitionDuration(4000)
+                      .polygonAltitude((feat) =>
+                        Math.max(
+                          0.1,
+                          Math.sqrt(+feat.properties.POP_EST) * 7e-5
+                        )
+                      ),
+                  3000
+                );
+              });
+
+            world.scene().traverse((child) => {
+              if (child.isMesh) {
+                child.castShadow = true;
+                child.receiveShadow = true;
+              }
+            });
+          });
+        var map = tt.map({
+          key: "PSaNrTLdLNvhIfBH796VG3MGFpU0BXTu",
+          container: "map",
+          center: [-15.5, 28.1],
+          zoom: 6,
+          pitch: 0,
+          bearing: 0,
+          dragPan: true,
+          style:
+            "https://api.tomtom.com/style/1/style/22.2.1-*/?map=2/basic_street-dark&poi=2/poi_dark",
+        });
+
+        map.addControl(new tt.FullscreenControl());
+        map.addControl(new tt.NavigationControl());
+
+        var originalPitch = 30;
+        var originalBearing = 20;
+
+        document
+          .getElementById("resetView")
+          .addEventListener("click", function () {
+            var currentPitch = map.getPitch();
+            var currentBearing = map.getBearing();
+
+            if (currentPitch !== 30 || currentBearing !== 20) {
+              map.easeTo({
+                pitch: originalPitch,
+                bearing: originalBearing,
+                duration: 1000,
+              });
+            } else {
+              map.easeTo({
+                pitch: 0,
+                bearing: 0,
+                duration: 1000,
+              });
+            }
+          });
+      });
+    </script>
+    <script>
+      if (
+        (document.getElementById && window.addEventListener) ||
+        window.attachEvent
+      ) {
+        (function () {
+          var numberOfStars = 10;
+          var starSpeed = 0.4;
+          var inTheFace = 0;
+          var setTimeOutSpeed = 10;
+          var h,
+            y,
+            cy,
+            cx,
+            sy,
+            sx,
+            ref,
+            field,
+            oy1,
+            oy2,
+            ox1,
+            ox2,
+            iy1,
+            iy2,
+            ix1,
+            ix2;
+          var d = document;
+          var domWw = typeof window.innerWidth == "number";
+          var domSy = typeof window.pageYOffset == "number";
+          var pi1 = 180 / 3.14;
+          var pi2 = 3.14 / 180;
+          var y = [];
+          var x = [];
+          var strs = [];
+          var gro = [];
+          var dim = [];
+          var dfc = [];
+          var vel = [];
+          var dir = [];
+          var acc = [];
+          var dtor = [];
+          var xy2 = [];
+          var idx = document.getElementsByTagName("div").length;
+          var zip = [];
+          var pix = "px";
+          for (i = 0; i < numberOfStars; i++) {
+            document.write(
+              '<div id="stars' +
+                (idx + i) +
+                '"' +
+                'style="position:absolute;top:0px;left:0px;' +
+                "width:0.01px;height:0.01px;background:white;" +
+                'font-size:0px;"><\/div>'
+            );
+          }
+          if (domWw) ref = window;
+          else {
+            if (
+              d.documentElement &&
+              typeof d.documentElement.clientWidth == "number" &&
+              d.documentElement.clientWidth != 0
+            )
+              ref = d.documentElement;
+            else {
+              if (d.body && typeof d.body.clientWidth == "number") ref = d.body;
+            }
+          }
+
+          function win() {
+            var mozBar =
+              domWw && ref.innerWidth != d.documentElement.offsetWidth ? 20 : 0;
+            h = domWw ? ref.innerHeight : ref.clientHeight;
+            w = domWw ? ref.innerWidth - mozBar : ref.clientWidth;
+            cy = Math.floor(h / 2);
+            cx = Math.floor(w / 2);
+
+            oy1 = (75 * h) / 100;
+            oy2 = oy1 / 2;
+            ox1 = (75 * w) / 100;
+            ox2 = ox1 / 2;
+
+            iy1 = (18 * h) / 100;
+            iy2 = iy1 / 2;
+            ix1 = (18 * w) / 100;
+            ix2 = ix1 / 2;
+
+            field = h > w ? h : w;
+          }
+
+          function rst(s) {
+            var cyx;
+            sy = domSy ? ref.pageYOffset : ref.scrollTop;
+            sx = domSy ? ref.pageXOffset : ref.scrollLeft;
+            acc[s] = 0;
+            dim[s] = 1;
+            xy2[s] = 0;
+            cyx = Math.round(Math.random() * 2);
+            if (cyx == 0) {
+              y[s] = cy - iy2 + Math.floor(Math.random() * iy1);
+              x[s] = cx - ix2 + Math.floor(Math.random() * ix1);
+            } else {
+              y[s] = cy - oy2 + Math.floor(Math.random() * oy1);
+              x[s] = cx - ox2 + Math.floor(Math.random() * ox1);
+            }
+            dy = y[s] - cy;
+            dx = x[s] - cx;
+            dir[s] = Math.atan2(dy, dx) * pi1;
+            dfc[s] = Math.sqrt(dy * dy + dx * dx);
+            zip[s] = (10 * (dfc[s] + inTheFace)) / 100;
+            vel[s] = (starSpeed * dfc[s]) / 100;
+            dtor[s] = field - dfc[s];
+            if (dtor[s] < 1) dtor[s] = 1;
+            gro[s] = (0.003 * dtor[s]) / 100;
+          }
+
+          function animate() {
+            for (i = 0; i < numberOfStars; i++) {
+              y[i] += vel[i] * Math.sin(dir[i] * pi2);
+              x[i] += vel[i] * Math.cos(dir[i] * pi2);
+              acc[i] = (vel[i] / (dfc[i] + vel[i] * zip[i])) * vel[i];
+              vel[i] += acc[i];
+              dim[i] += gro[i] + acc[i] / zip[i];
+              xy2[i] = dim[i] / 2;
+              if (
+                y[i] < 0 + xy2[i] ||
+                x[i] < 0 + xy2[i] ||
+                y[i] > h - xy2[i] ||
+                x[i] > w - xy2[i]
+              ) {
+                rst(i);
+              }
+              strs[i].top = y[i] - xy2[i] + sy + pix;
+              strs[i].left = x[i] - xy2[i] + sx + pix;
+              strs[i].width = strs[i].height = Math.round(dim[i] * 0.2) + pix;
+            }
+            setTimeout(animate, setTimeOutSpeed);
+          }
+
+          function init() {
+            win();
+            for (i = 0; i < numberOfStars; i++) {
+              strs[i] = document.getElementById("stars" + (idx + i)).style;
+              rst(i);
+            }
+            animate();
+          }
+
+          if (window.addEventListener) {
+            window.addEventListener("resize", win, false);
+            window.addEventListener("load", init, false);
+          } else if (window.attachEvent) {
+            window.attachEvent("onresize", win);
+            window.attachEvent("onload", init);
+          }
+        })();
+      }
+    </script>
+  </body>
+</html>

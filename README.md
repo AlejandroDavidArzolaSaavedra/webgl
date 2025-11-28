@@ -6,7 +6,7 @@ Cada juego está diseñado para ejecutarse directamente en el navegador, sin nec
 
 ## 🚗 Juego 1: **Car WebGL**
 
-**Car WebGL** es un juego simple en el que controlas un coche desde una vista frontal en una carretera. El entorno incluye árboles, nubes y una carretera animada que simula movimiento. El objetivo es **mover el coche libremente** usando las teclas de flecha, evitando salir del camino mientras el escenario se desplaza. Pruebalo -> [Link del juego](https://alejandrodavidarzolasaavedra.github.io/webgl/car_game/)
+**Car WebGL** es un juego simple en el que controlas un coche desde una vista frontal en una carretera. El entorno incluye árboles, nubes y una carretera animada que simula movimiento. El objetivo es **mover el coche libremente** usando las teclas de flecha, evitando salir del camino mientras el escenario se desplaza. Pruebalo -> [Link del juego](https://alejandrodavidarzolasaavedra.github.io/Webgl-juegos/car_game/)
 
 <div align="center">
   <img src="img/car_game.gif">
@@ -14,7 +14,7 @@ Cada juego está diseñado para ejecutarse directamente en el navegador, sin nec
 
 ## 🏓 Juego 2: Ping Pong WebGL
 
-Ping Pong WebGL es un juego de tenis de mesa interactivo en 2D creado con WebGL 2.0. El juego también permite personalizar el nombre y color de cada jugador antes de comenzar.  Pruebalo -> [Link del juego](https://alejandrodavidarzolasaavedra.github.io/webgl/ping_pong/)
+Ping Pong WebGL es un juego de tenis de mesa interactivo en 2D creado con WebGL 2.0. El juego también permite personalizar el nombre y color de cada jugador antes de comenzar.  Pruebalo -> [Link del juego](https://alejandrodavidarzolasaavedra.github.io/Webgl-juegos/ping_pong/)
 
 Permite jugar dos modos de juego:
 
@@ -27,7 +27,7 @@ Permite jugar dos modos de juego:
 
 ## ☀️ Juego 3: Sistema Solar WebGL
 
-Sistema Solar WebGL es una simulación interactiva que muestra el movimiento de los planetas alrededor del Sol. Cada planeta tiene su propio color, tamaño, órbita y, en algunos casos, lunas y anillos. El sistema se representa en un entorno 2D con animaciones continuas y efectos visuales suaves. Pruebalo -> [Link del juego](https://alejandrodavidarzolasaavedra.github.io/webgl/solar_system/)
+Sistema Solar WebGL es una simulación interactiva que muestra el movimiento de los planetas alrededor del Sol. Cada planeta tiene su propio color, tamaño, órbita y, en algunos casos, lunas y anillos. El sistema se representa en un entorno 2D con animaciones continuas y efectos visuales suaves. Pruebalo -> [Link del juego](https://alejandrodavidarzolasaavedra.github.io/Webgl-juegos/solar_system/)
 
 <div align="center">
   <img src="img/solar_system.gif">
@@ -35,7 +35,7 @@ Sistema Solar WebGL es una simulación interactiva que muestra el movimiento de 
 
 ## 🎮 Juego 4: Mundo 3D WebGL
 
-Mundo 3D es un juego de acción en primera persona desarrollado completamente con WebGL 2.0. Explora un mundo tridimensional lleno de pirámides giratorias, octaedros, cubos móviles y un perseguidor negro que te seguirá por el mapa. Usa el espacio para disparar y acumula puntos destruyendo objetos. Pruebalo -> [Link del juego](https://alejandrodavidarzolasaavedra.github.io/webgl/3d_world/)
+Mundo 3D es un juego de acción en primera persona desarrollado completamente con WebGL 2.0. Explora un mundo tridimensional lleno de pirámides giratorias, octaedros, cubos móviles y un perseguidor negro que te seguirá por el mapa. Usa el espacio para disparar y acumula puntos destruyendo objetos. Pruebalo -> [Link del juego](https://alejandrodavidarzolasaavedra.github.io/Webgl-juegos/3d_world/)
 
 <div align="center">
   <img src="img/3d_world.gif">
@@ -44,8 +44,18 @@ Mundo 3D es un juego de acción en primera persona desarrollado completamente co
 
 ## 🎨 Juego 5: Iluminación 3D con WebGL
 
-Iluminación 3D es una demostración interactiva de gráficos por computadora que muestra diferentes figuras geométricas con un sistema de iluminación avanzado. Experimenta con múltiples fuentes de luz, materiales y formas 3D en tiempo real. Pruebalo -> [Link del juego](https://alejandrodavidarzolasaavedra.github.io/webgl/3d_ilumination/)
+Iluminación 3D es una demostración interactiva de gráficos por computadora que muestra diferentes figuras geométricas con un sistema de iluminación avanzado. Experimenta con múltiples fuentes de luz, materiales y formas 3D en tiempo real. Pruebalo -> [Link del juego](https://alejandrodavidarzolasaavedra.github.io/Webgl-juegos/3d_ilumination/)
 
 <div align="center"><img src="img/3d_ilumination.gif" alt="Demo del sistema de Iluminación 3D"> </div>
 
 
+Aquí tienes el **Juego 6** redactado siguiendo exactamente el mismo estilo y formato que los juegos anteriores, y adaptado a la estructura de tu README:
+
+---
+
+## 🌌 Juego 6: Sistema Solar 3D WebGL
+
+**Sistema Solar 3D WebGL** es una simulación avanzada del sistema solar construida con **WebGL** y **Three.js**, ofreciendo una experiencia completamente tridimensional e interactiva. Incluye controles dinámicos, texturas realistas, skyboxes, movimientos orbitales, animaciones y efectos visuales inmersivos.
+Prúebalo-> [Link del juego](https://alejandrodavidarzolasaavedra.github.io/Webgl-juegos/3d_solar_system/)
+
+<div align="center"><img src="img/3d_solar_system.gif" alt="Demo del sistema solar en 3D"> </div>
