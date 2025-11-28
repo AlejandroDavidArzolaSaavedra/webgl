@@ -1,11 +1,3 @@
-# 🌌 Sistema Solar en WebGL 3D con Visualización Especial usando Three.js
-
-## Descripción Breve
-
-Este proyecto combina **WebGL** para crear un **sistema solar en 3D** interactivo. 
-
----
-
 ## Controles 🕹️
 
 El sistema incluye botones interactivos para controlar diversas funcionalidades:
@@ -22,22 +14,6 @@ El sistema incluye botones interactivos para controlar diversas funcionalidades:
 - **Mantén el ratón sobre algunas vistas del viaje**: Muestra información adicional o interacciones.
 - **Click y movimiento en la Tierra**: Controla su rotación y permite detenerla manteniendo el clic.
 
----
-
-## Elementos Destacados del Sistema Solar
-
-- Planetas con sombras, iluminación y texturas en 3D.
-- Lunas que orbitan alrededor de algunos planetas.
-- Cinturones de asteroides.
-- Fondos dinámicos que cambian para mejorar la experiencia visual.
-- Movimiento de estrellas para generar realismo.
-- Interacción con el ratón tanto para planetas como para el sistema en general.
-- Información detallada de cada planeta.
-- Visualización de la fecha, temperatura y velocidad del viento en Canarias mediante APIs.
-- Experiencia inmersiva de 360º con **Three.js**.
-- Mapas detallados de la Tierra con datos **GeoJSON**.
-- Música espacial sin copyright.
-- Botón de ayuda para entender el control de teclas y funcionalidades.
 
 ---
 
